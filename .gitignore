@@ -1,3 +1,8 @@
 agent/auth.json
-agent/sessions/
 agent/extensions/pi-rtk-optimizer/
+agent/intercom
+agent/skills
+agent/sessions/
+agent/*.json
+agent/*.jsonl
+agent/*.bak

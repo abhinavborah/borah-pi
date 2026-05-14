@@ -1,10 +1,15 @@
 {
   "lastChangelogVersion": "0.74.0",
-  "defaultProvider": "openrouter",
-  "defaultModel": "minimax/minimax-m2.7",
+  "defaultProvider": "opencode-go",
+  "defaultModel": "minimax-m2.7",
   "enableInstallTelemetry": false,
-  "theme": "dark",
+  "theme": "gruvbox-dark",
   "packages": [
-    "npm:pi-rtk-optimizer"
-  ]
+    "npm:pi-rtk-optimizer",
+    "npm:pi-mcp-adapter",
+    "npm:pi-subagents",
+    "npm:pi-intercom",
+    "npm:pi-web-access"
+  ],
+  "defaultThinkingLevel": "medium"
 }

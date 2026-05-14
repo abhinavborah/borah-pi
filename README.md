@@ -8,34 +8,27 @@ My personal Pi coding agent setup, configured to work with [Archon](https://gith
 ~/.pi/
 ├── agent/
 │   ├── extensions/
-│   │   ├── firecrawl.ts           # Web scraping/crawling tools
 │   │   └── tool-counter-footer.ts  # Tool call counter UI footer
 │   └── settings.json              # Configuration
+├── mcp.json                        # MCP server configurations
 └── README.md
 ```
 
-**NPM packages** (installed via `pi install`):
+## MCP Servers
 
-- `npm:pi-rtk-optimizer` — Auto-rewrites bash commands to compact rtk equivalents
+Configured via `~/.pi/mcp.json` using [pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter):
 
-**Archon workflows** (in `~/.archon/workflows/`, not tracked here):
+| MCP | Type | Purpose |
+|-----|------|---------|
+| **context7** | Remote | Up-to-date library/framework documentation |
+| **deepwiki** | Remote | GitHub repository docs and AI Q&A |
+| **firecrawl** | Local | Web scraping, crawling, URL discovery |
+| **playwright** | Local | Browser automation |
+| **MCP_DOCKER** | Local | Docker MCP gateway |
 
-- archon-assist, archon-fix-github-issue, archon-idea-to-pr, archon-plan-to-pr, archon-refactor-safely, archon-smart-pr-review, maintainer-standup-minimax, repo-triage-minimax
+### Firecrawl MCP (Self-Hosted)
 
-## Extensions
-
-### Firecrawl (`extensions/firecrawl.ts`)
-
-Provides web scraping, crawling, and URL discovery tools via the [Firecrawl](https://github.com/mendableai/firecrawl) API.
-
-**Tools:**
-| Tool | Description |
-|------|-------------|
-| `firecrawl_scrape` | Scrape a single URL, return markdown + metadata |
-| `firecrawl_crawl` | Crawl entire website (async, auto-polls for completion) |
-| `firecrawl_map` | Discover all URLs on a website quickly |
-
-**Requires:** [Firecrawl running locally](https://github.com/mendableai/firecrawl) via Docker at `http://localhost:3002`.
+Firecrawl runs via Docker for web scraping capabilities.
 
 **Setup:**
 
@@ -48,12 +41,69 @@ cd ~/Developer/firecrawl
 docker compose build
 docker compose up -d
 
-# Install extension (already in this repo)
-# Just copy firecrawl.ts to ~/.pi/agent/extensions/
-
-# Reload pi
-pi /reload
+# Firecrawl runs at http://localhost:3002
+# MCP server connects automatically via ~/.pi/mcp.json
 ```
+
+**Tools available:**
+| Tool | Description |
+|------|-------------|
+| `firecrawl_scrape` | Scrape a single URL, return markdown + metadata |
+| `firecrawl_map` | Discover all URLs on a website |
+| `firecrawl_search` | Search the web |
+| `firecrawl_crawl` | Crawl entire website |
+| `firecrawl_extract` | Extract structured data |
+| `firecrawl_agent` | Autonomous research agent |
+
+---
+
+### pi-subagents
+
+Enables delegation to focused child agents. See `~/.pi/agent/AGENTS.md` for built-in agents: `scout`, `researcher`, `planner`, `worker`, `reviewer`, `context-builder`, `oracle`, `delegate`.
+
+### pi-intercom
+
+Direct messaging between pi sessions on the same machine. Press **Alt+M** or run `/intercom` to send messages between sessions.
+
+### pi-web-access
+
+Provides `code_search` for programming questions, API usage, and library examples. Useful when firecrawl isn't available or for targeted code lookups.
+
+---
+
+## Matt Pocock Skills
+
+Installed via:
+```bash
+npx skills@latest add mattpocock/skills
+```
+
+Then run `/setup-matt-pocock-skills` in your agent to configure per-repo settings.
+
+### Available Skills
+
+**Engineering:**
+| Skill | Purpose |
+|-------|---------|
+| `/diagnose` | Disciplined diagnosis loop for bugs/performance |
+| `/grill-with-docs` | Grilling session with domain model alignment |
+| `/triage` | Triage issues through a state machine |
+| `/improve-codebase-architecture` | Find refactoring opportunities |
+| `/tdd` | Test-driven development (red-green-refactor) |
+| `/to-issues` | Break plans into GitHub issues |
+| `/to-prd` | Convert context to PRD issue |
+| `/zoom-out` | High-level code context |
+| `/prototype` | Build throwaway prototypes |
+
+**Productivity:**
+| Skill | Purpose |
+|-------|---------|
+| `/caveman` | Ultra-compact communication (~75% token reduction) |
+| `/grill-me` | Get interviewed on a plan/design |
+| `/handoff` | Compact conversation for agent handoff |
+| `/write-a-skill` | Create new skills |
+
+See [github.com/mattpocock/skills](https://github.com/mattpocock/skills) for full documentation.
 
 ---
 
@@ -72,25 +122,29 @@ Displays tool and MCP call counts in the UI footer. Toggle on/off via command.
 
 ---
 
-### RTK Optimizer (npm package)
+## Installed Packages
 
-Auto-rewrites bash commands to compact `rtk` equivalents, reducing token usage.
+### NPM Packages (via `pi install`)
 
-**Package:** `npm:pi-rtk-optimizer`  
-**Source:** [github.com/MasuRii/pi-rtk-optimizer](https://github.com/MasuRii/pi-rtk-optimizer)  
-**Requires:** `rtk` installed (available via Homebrew: `brew install rubygem-tk` or system package manager)
+| Package | Purpose |
+|---------|---------|
+| `npm:pi-rtk-optimizer` | Auto-rewrites bash commands to compact rtk equivalents |
+| `npm:pi-subagents` | Async subagent delegation with truncation, artifacts, and session sharing |
+| `npm:pi-intercom` | Direct 1:1 messaging between pi sessions on the same machine |
+| `npm:pi-web-access` | Code examples, docs, and API references ([nicobailon/pi-web-access](https://github.com/nicobailon/pi-web-access)) |
 
-**What it does:**
+**RTK Optimizer:** Rewrites `ls -la` → `rtk ls` (compact output). Requires `rtk` installed (`brew install rubygem-tk`).
+
+### Skills (Matt Pocock)
+
+[Matt Pocock's skills](https://github.com/mattpocock/skills) are high-quality engineering practices for AI coding agents. See the **Matt Pocock Skills** section below.
+
+**RTK Optimizer:**
 
 - Rewrites `ls -la` → `rtk ls` (compact output)
-- Rewrites `git status` → `rtk g s` equivalents
 - Tracks savings with `/rtk stats`
 
-**Install:**
-
-```bash
-pi install npm:pi-rtk-optimizer
-```
+**Requires:** `rtk` installed (`brew install rubygem-tk`)
 
 ---
 
@@ -146,9 +200,11 @@ Archon is a workflow engine for AI coding agents. These workflows are configured
 | Dependency          | Purpose                    | Install                                                                             |
 | ------------------- | -------------------------- | ----------------------------------------------------------------------------------- |
 | **pi-coding-agent** | The Pi coding agent        | [earendil-works/pi-coding-agent](https://github.com/earendil-works/pi-coding-agent) |
+| **pi-mcp-adapter** | MCP server integration     | [pi.dev/packages/pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter)            |
 | **rtk**             | Compact shell commands     | `brew install rubygem-tk` or system package                                         |
-| **Firecrawl**       | Web scraping (optional)    | Docker: `docker compose up -d`                                                      |
-| **Archon**          | Workflow engine (optional) | `brew install coleam00/archon/archon`                                               |
+| **Firecrawl**       | Web scraping (optional)    | Docker: `cd ~/Developer/firecrawl && docker compose up -d`                          |
+| **Matt Pocock Skills** | Engineering best practices | `npx skills@latest add mattpocock/skills`                                           |
+| **Archon**          | Workflow engine (optional) | `brew install coleam00/archon/archon`                                              |
 | **Node.js/npm**     | For pi and rtk             | via nvm or system                                                                   |
 
 ### Quick Install
@@ -156,16 +212,22 @@ Archon is a workflow engine for AI coding agents. These workflows are configured
 ```bash
 # 1. Install pi (follow pi-coding-agent docs)
 
-# 2. Install rtk
+# 2. Install pi-mcp-adapter (included with pi)
+# MCP servers configured in ~/.pi/mcp.json
+
+# 3. Install rtk
 brew install rubygem-tk
 
-# 3. Install RTK optimizer for pi
+# 4. Install RTK optimizer for pi
 pi install npm:pi-rtk-optimizer
 
-# 4. Install Archon (optional)
+# 5. Install Matt Pocock Skills (optional)
+npx skills@latest add mattpocock/skills
+
+# 6. Install Archon (optional)
 brew install coleam00/archon/archon
 
-# 5. (Optional) Start Firecrawl for web scraping
+# 6. (Optional) Start Firecrawl for web scraping
 git clone https://github.com/mendableai/firecrawl.git ~/Developer/firecrawl
 cd ~/Developer/firecrawl && docker compose up -d
 ```
@@ -173,6 +235,10 @@ cd ~/Developer/firecrawl && docker compose up -d
 ---
 
 ## Configuration
+
+### MCP Servers (`mcp.json`)
+
+Configure MCP servers in `~/.pi/mcp.json`. See [pi-mcp-adapter docs](https://pi.dev/packages/pi-mcp-adapter) for details.
 
 ### Settings (`settings.json`)
 
@@ -187,7 +253,23 @@ Copy `settings.json.template` to `~/.pi/agent/settings.json` and customize:
 }
 ```
 
-### API Credentials
+### Environment Variables
+
+MCP servers may require API keys via `{env:VAR_NAME}` syntax in `mcp.json`. Add these to your shell RC file:
+
+```bash
+# ~/.zshrc or ~/.bashrc
+export CONTEXT7_API_KEY="fc-your-key-here"
+export FIRECRAWL_API_URL="http://localhost:3002"
+# Add other API keys as needed
+```
+
+Reload your shell:
+```bash
+source ~/.zshrc
+```
+
+### API Credentials (Alternative)
 
 Store credentials in `~/.pi/agent/auth.json` via interactive login:
 
@@ -203,33 +285,13 @@ Add global instructions that apply to every Pi session. Place in `~/.pi/agent/AG
 
 ---
 
-## Quick Start
-
-```bash
-# 1. Clone this config
-git clone https://github.com/YOUR_USERNAME/pi.git ~/.pi-backup
-
-# 2. Copy extensions to pi agent directory
-cp -r agent/extensions/ ~/.pi/agent/extensions/
-
-# 3. Copy settings template and edit with your provider/model
-cp settings.json.template ~/.pi/agent/settings.json
-# Edit ~/.pi/agent/settings.json with your provider/model
-
-# 4. Install npm packages
-pi install npm:pi-rtk-optimizer
-
-# 5. Reload pi
-pi /reload
-```
-
-**Archon workflows:** These are tracked separately in `~/.archon/workflows/` and not included in this repo.
-
----
-
 ## Credits
 
 - **[pi-coding-agent](https://github.com/earendil-works/pi-coding-agent)** by @earendil-works
+- **[pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter)** by @earendil-works
 - **[pi-rtk-optimizer](https://github.com/MasuRii/pi-rtk-optimizer)** by @MasuRii
 - **[Archon](https://github.com/coleam00/Archon)** by @coleam00
 - **[Firecrawl](https://github.com/mendableai/firecrawl)** by @mendableai
+- **[Playwright](https://playwright.dev)** by Microsoft
+- **[Context7](https://context7.com)** by Context7
+- **[DeepWiki](https://deepwiki.com)** by DeepWiki
