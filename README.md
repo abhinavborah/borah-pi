@@ -385,7 +385,9 @@ Reload: `source ~/.zshrc`
 ## Credits
 
 - **[pi-coding-agent](https://github.com/earendil-works/pi-coding-agent)** by @earendil-works
-- **[pi-subagents](https://pi.dev/packages/pi-subagents)** by nicopreme
+- **[pi-subagents](https://github.com/nicobailon/pi-subagents)** by nicopreme
+- **[pi-web-access](https://github.com/nicobailon/pi-web-access)** by nicopreme
+- **[pi-intercom](https://github.com/nicobailon/pi-intercom)** by nicopreme
 - **[Matt Pocock Skills](https://github.com/mattpocock/skills)** by @mattpocock
 - **[pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter)** by nicopreme
 - **[pi-rtk-optimizer](https://github.com/MasuRii/pi-rtk-optimizer)** by @MasuRii
