@@ -3,6 +3,7 @@ agent/extensions/pi-rtk-optimizer/
 agent/intercom
 agent/skills
 agent/sessions/
+agent/supacode/
 agent/*.json
 agent/*.jsonl
 agent/*.bak
