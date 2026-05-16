@@ -7,9 +7,9 @@
   "packages": [
     "npm:pi-rtk-optimizer",
     "npm:pi-mcp-adapter",
-    "npm:pi-subagents",
     "npm:pi-intercom",
-    "npm:pi-web-access"
+    "npm:pi-web-access",
+    "npm:pi-subagents"
   ],
   "defaultThinkingLevel": "medium"
 }
