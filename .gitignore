@@ -6,3 +6,5 @@ agent/sessions/
 agent/*.json
 agent/*.jsonl
 agent/*.bak
+graphify-out/
+.graphify*
