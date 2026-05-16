@@ -54,14 +54,14 @@ Uses `/zoom-out` skill for system-level context mapping.
 
 ### Researcher
 
-Autonomous web researcher with access to MCP tools.
+Autonomous web researcher with access to web scraping and documentation tools.
 
-**MCP tools available:**
+**Tools available:**
 
-- `firecrawl_scrape`, `firecrawl_map`, `firecrawl_search`, `firecrawl_crawl`
-- `web_search`, `fetch_content`, `get_search_content`
-- `code_search`
-- `mcp__context7__*`, `mcp__deepwiki__*`
+- `firecrawl_scrape`, `firecrawl_map`, `firecrawl_search`, `firecrawl_crawl` (via pi-web-access)
+- `web_search`, `fetch_content`, `get_search_content`, `code_search` (via pi-web-access)
+- `context7_resolve_library_id`, `context7_query_docs` (native extension)
+- `deepwiki_read_wiki_structure`, `deepwiki_read_wiki_contents`, `deepwiki_ask_question` (native extension)
 
 ```typescript
 subagent({
@@ -132,43 +132,40 @@ Uses `/diagnose` for hard bugs, `/grill-with-docs` for architectural decisions.
 
 ---
 
-## MCP Servers
+## Native Extensions
 
-Configured via `~/.pi/mcp.json` using [pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter):
+Custom extensions installed locally in `~/.pi/agent/extensions/`:
 
-| MCP            | Type   | Tools                                                       | Purpose                           |
-| -------------- | ------ | ----------------------------------------------------------- | --------------------------------- |
-| **context7**   | Remote | `resolve-library-id`, `query-docs`                          | Up-to-date library/framework docs |
-| **deepwiki**   | Remote | `read_wiki_structure`, `read_wiki_contents`, `ask_question` | GitHub repo docs + AI Q&A         |
-| **firecrawl**  | Local  | `scrape`, `crawl`, `map`, `search`, `extract`, `agent`      | Web scraping                      |
-| **playwright** | Local  | Browser automation                                          | Browser automation                |
-| **MCP_DOCKER** | Local  | Docker MCP gateway                                          | Docker integration                |
+| Extension | Tools | Purpose |
+| ---------- | ----- | ------- |
+| **context7.ts** | `context7_resolve_library_id`, `context7_query_docs` | Up-to-date library/framework documentation |
+| **deepwiki.ts** | `deepwiki_read_wiki_structure`, `deepwiki_read_wiki_contents`, `deepwiki_ask_question` | GitHub repository documentation and AI Q&A |
+| **splash.ts** | - | Splash screen on startup |
+| **tool-counter-footer.ts** | - | Tool usage counter in footer |
 
-### Context7 MCP
+### Context7 Extension
 
-Up-to-date library documentation. API key: `CONTEXT7_API_KEY` in `~/.zshrc`.
+Up-to-date library documentation. Interactive command: `/context7`
 
 **Tools:**
-
-- `resolve-library-id` — Resolve library name to Context7 ID
-- `query-docs` — Fetch docs for a library
+- `context7_resolve_library_id` — Resolve library name to Context7 ID
+- `context7_query_docs` — Fetch docs for a library
 
 **Usage:**
 
 ```typescript
 subagent({ agent: "researcher", task: "How to use Prisma transactions?" });
-// researcher uses mcp__context7__* tools automatically
+// researcher uses context7_* tools automatically
 ```
 
-### Deepwiki MCP
+### DeepWiki Extension
 
-GitHub repository documentation and AI Q&A.
+GitHub repository documentation and AI Q&A. Interactive command: `/deepwiki`
 
 **Tools:**
-
-- `read_wiki_structure` — List documentation topics
-- `read_wiki_contents` — View documentation
-- `ask_question` — Ask questions about a repo
+- `deepwiki_read_wiki_structure` — List documentation topics
+- `deepwiki_read_wiki_contents` — View documentation
+- `deepwiki_ask_question` — Ask questions about a repo
 
 ### Firecrawl MCP (Local)
 

@@ -9,7 +9,9 @@
     "npm:pi-mcp-adapter",
     "npm:pi-intercom",
     "npm:pi-web-access",
-    "npm:pi-subagents"
+    "npm:pi-subagents",
+    "extensions/deepwiki.ts",
+    "extensions/context7.ts"
   ],
   "defaultThinkingLevel": "medium"
 }

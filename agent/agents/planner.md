@@ -1,7 +1,7 @@
 ---
 name: planner
 description: Creates implementation plans from context and requirements
-tools: read, grep, find, ls, write, mcp__context7__context7_search, mcp__deepwiki__deepwiki_search, mcp__deepwiki__deepwiki_codebase_qa, intercom
+tools: read, grep, find, ls, write, context7_resolve_library_id, context7_query_docs, deepwiki_read_wiki_structure, deepwiki_ask_question, intercom
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true

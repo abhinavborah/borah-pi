@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: Autonomous web researcher - searches, evaluates, and synthesizes a focused research brief
-tools: read, write, firecrawl_scrape, firecrawl_search, firecrawl_crawl, firecrawl_extract, firecrawl_agent, web_search, fetch_content, get_search_content, code_search, mcp__context7__context7_search, mcp__context7__context7_get-related-files, mcp__deepwiki__deepwiki_search, mcp__deepwiki__deepwiki_codebase_qa, intercom
+tools: read, write, firecrawl_scrape, firecrawl_search, firecrawl_crawl, firecrawl_extract, firecrawl_agent, web_search, fetch_content, get_search_content, code_search, context7_resolve_library_id, context7_query_docs, deepwiki_read_wiki_structure, deepwiki_ask_question, intercom
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
