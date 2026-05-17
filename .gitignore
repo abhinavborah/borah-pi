@@ -1,9 +1,9 @@
 agent/auth.json
 agent/extensions/pi-rtk-optimizer/
+agent/extensions/supacode/
 agent/intercom
 agent/skills
 agent/sessions/
-agent/supacode/
 agent/*.json
 agent/*.jsonl
 agent/*.bak
