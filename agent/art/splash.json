@@ -1,0 +1,48 @@
+{
+  "border": {
+    "style": "double"
+  },
+  "showDefaultStats": false,
+  "_borderChars": {
+    "solid": {
+      "v": "│",
+      "tl": "┌",
+      "tr": "┐",
+      "bl": "└",
+      "br": "┘",
+      "h": "─",
+      "tJunction": "┬",
+      "bJunction": "┴"
+    },
+    "dashed": {
+      "v": "┆",
+      "tl": "┌",
+      "tr": "┐",
+      "bl": "└",
+      "br": "┘",
+      "h": "┄",
+      "tJunction": "┬",
+      "bJunction": "┴"
+    },
+    "rounded": {
+      "v": "│",
+      "tl": "╭",
+      "tr": "╮",
+      "bl": "╰",
+      "br": "╯",
+      "h": "─",
+      "tJunction": "┬",
+      "bJunction": "┴"
+    },
+    "double": {
+      "v": "║",
+      "tl": "╔",
+      "tr": "╗",
+      "bl": "╚",
+      "br": "╝",
+      "h": "═",
+      "tJunction": "╦",
+      "bJunction": "╩"
+    }
+  }
+}

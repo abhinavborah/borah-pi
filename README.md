@@ -136,18 +136,19 @@ Uses `/diagnose` for hard bugs, `/grill-with-docs` for architectural decisions.
 
 Custom extensions installed locally in `~/.pi/agent/extensions/`:
 
-| Extension | Tools | Purpose |
-| ---------- | ----- | ------- |
-| **context7.ts** | `context7_resolve_library_id`, `context7_query_docs` | Up-to-date library/framework documentation |
-| **deepwiki.ts** | `deepwiki_read_wiki_structure`, `deepwiki_read_wiki_contents`, `deepwiki_ask_question` | GitHub repository documentation and AI Q&A |
-| **splash.ts** | - | Splash screen on startup |
-| **tool-counter-footer.ts** | - | Tool usage counter in footer |
+| Extension                  | Tools                                                                                  | Purpose                                    |
+| -------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **context7.ts**            | `context7_resolve_library_id`, `context7_query_docs`                                   | Up-to-date library/framework documentation |
+| **deepwiki.ts**            | `deepwiki_read_wiki_structure`, `deepwiki_read_wiki_contents`, `deepwiki_ask_question` | GitHub repository documentation and AI Q&A |
+| **splash.ts**              | -                                                                                      | Splash screen on startup                   |
+| **tool-counter-footer.ts** | -                                                                                      | Tool usage counter in footer               |
 
 ### Context7 Extension
 
 Up-to-date library documentation. Interactive command: `/context7`
 
 **Tools:**
+
 - `context7_resolve_library_id` — Resolve library name to Context7 ID
 - `context7_query_docs` — Fetch docs for a library
 
@@ -163,6 +164,7 @@ subagent({ agent: "researcher", task: "How to use Prisma transactions?" });
 GitHub repository documentation and AI Q&A. Interactive command: `/deepwiki`
 
 **Tools:**
+
 - `deepwiki_read_wiki_structure` — List documentation topics
 - `deepwiki_read_wiki_contents` — View documentation
 - `deepwiki_ask_question` — Ask questions about a repo
@@ -301,10 +303,56 @@ archon serve
 
 ---
 
+## Security (Recommended)
+
+### [nono](https://nono.sh) — Kernel-level sandbox for pi
+
+nono wraps pi in an OS-level sandbox, restricting filesystem and network access to only what the agent needs. This prevents accidental or malicious access to sensitive paths like `~/.ssh`, `~/.aws`, and shell configs.
+
+**What it protects against:**
+
+- Credential exfiltration via compromised prompts or dependencies
+- Unintended writes to system or config files
+- Runaway agents modifying files outside the working directory
+
+**Setup:**
+
+```bash
+# Install
+brew install nono
+
+# Add to ~/.zshrc — run pi sandboxed by default
+alias pi='nono run --profile pi --allow-cwd -- pi'
+
+# Reload
+source ~/.zshrc
+```
+
+**On first run** in a new directory, nono will ask if you want to share that directory with the sandbox. Accept once and it remembers the decision.
+
+**Pre-authorized access:**
+
+- Current working directory (read+write)
+- `~/.pi` and subdirectories
+- Agent skills and extensions
+- `/tmp` (temp files)
+- `localhost:3002` (Firecrawl MCP)
+
+**Blocked by default (no config needed):**
+
+- `~/.ssh`, `~/.aws`, `~/.gcloud`, `~/.gnupg`
+- `~/.zshrc`, `~/.bashrc`, `~/.profile`
+- Browser data, keychain databases
+
+If pi needs access to an additional directory, nono will prompt you during the session with an option to add it to the profile permanently.
+
+---
+
 ## Prerequisites
 
 | Dependency             | Purpose                    | Install                                                                             |
 | ---------------------- | -------------------------- | ----------------------------------------------------------------------------------- |
+| **nono**               | Kernel-level sandbox       | `brew install nono`                                                                 |
 | **pi-coding-agent**    | The Pi coding agent        | [earendil-works/pi-coding-agent](https://github.com/earendil-works/pi-coding-agent) |
 | **pi-mcp-adapter**     | MCP server integration     | [pi.dev/packages/pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter)            |
 | **rtk**                | Compact shell commands     | `brew install rubygem-tk`                                                           |
@@ -315,32 +363,43 @@ archon serve
 ### Quick Install
 
 ```bash
-# 1. Install pi (follow pi-coding-agent docs)
+# 1. Install nono (recommended)
+brew install nono
 
-# 2. Install pi-mcp-adapter
+# 2. Create the pi sandbox profile
+# The profile defines what pi can access. Get it from your existing setup or create it:
+# ~/.config/nono/profiles/pi.json
+
+# 3. Add the sandbox alias to ~/.zshrc
+echo "alias pi='nono run --profile pi --allow-cwd -- pi'" >> ~/.zshrc
+source ~/.zshrc
+
+# 4. Install pi (follow pi-coding-agent docs)
+
+# 3. Install pi-mcp-adapter
 pi install npm:pi-mcp-adapter
 
-# 3. Install rtk
+# 4. Install rtk
 brew install rubygem-tk
 
-# 4. Install RTK optimizer
+# 5. Install RTK optimizer
 pi install npm:pi-rtk-optimizer
 
-# 5. Install subagents and intercom
+# 6. Install subagents and intercom
 pi install npm:pi-subagents
 pi install npm:pi-intercom
 
-# 6. Install Matt Pocock Skills
+# 7. Install Matt Pocock Skills
 npx skills@latest add mattpocock/skills
 
-# 7. Install web-access for code lookups
+# 8. Install web-access for code lookups
 pi install npm:pi-web-access
 
-# 8. (Optional) Start Firecrawl
+# 9. (Optional) Start Firecrawl
 git clone https://github.com/mendableai/firecrawl.git ~/Developer/firecrawl
 cd ~/Developer/firecrawl && docker compose up -d
 
-# 9. (Optional) Install Archon
+# 10. (Optional) Install Archon
 brew install coleam00/archon/archon
 ```
 
@@ -381,6 +440,7 @@ Reload: `source ~/.zshrc`
 
 ## Credits
 
+- **[nono](https://nono.sh)** by always-further
 - **[pi-coding-agent](https://github.com/earendil-works/pi-coding-agent)** by @earendil-works
 - **[pi-subagents](https://github.com/nicobailon/pi-subagents)** by nicopreme
 - **[pi-web-access](https://github.com/nicobailon/pi-web-access)** by nicopreme
@@ -393,4 +453,3 @@ Reload: `source ~/.zshrc`
 - **[Context7](https://context7.com)** by Context7
 - **[DeepWiki](https://deepwiki.com)** by DeepWiki
 - **[Playwright](https://playwright.dev)** by Microsoft
-
