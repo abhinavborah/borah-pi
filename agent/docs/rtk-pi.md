@@ -214,6 +214,62 @@ This is a **minimal replacement** for pi-rtk-optimizer. Key differences:
 | Compaction techniques | Many | Core heuristics only |
 | TypeScript quality | Mixed | Clean, minimal interfaces |
 
+## #WIP — Missing Features
+
+Sorted by priority (most important first). See [pi-rtk-optimizer/src/](https://github.com/MasuRii/pi-rtk-optimizer/tree/main/src) for reference implementations.
+
+### High Priority
+
+1. **Read tool compaction** — RTK rewrites `cat file` → `rtk read file`; `tool_result` should compact the `read` tool output the same way it handles `bash`. This is the single most impactful missing feature — RTK's primary use case is file reading.
+   - Files: `output-compactor.ts`, `techniques/source.ts` (detectLanguage, filterSourceCode, smartTruncate)
+   - Key: detect `toolName === "read"`, extract `input.path`, apply truncation/source-filtering heuristics
+
+2. **Streaming sanitization** — Handle partial/streaming output during long-running bash commands (`tool_execution_update` hook). Without this, compacting a command mid-stream can produce garbled output.
+   - Files: `tool-execution-sanitizer.ts`, `output-compactor.ts` (`sanitizeStreamingBashExecutionResult`)
+   - Key: subscribe to `tool_execution_update`, sanitize `partialResult` before it reaches `tool_result`
+
+3. **Smart truncation** — Truncate by logical lines instead of raw character count. Better for source code where line count matters more than char count.
+   - File: `techniques/source.ts` (`smartTruncate`)
+   - Key: count `
+`-delimited lines, enforce `maxLines` threshold
+
+### Medium Priority
+
+4. **RTK hook warning stripping** — RTK sometimes emits hook-related warnings that pollute output. Strip them before compaction.
+   - File: `techniques/rtk.ts` (`stripRtkHookWarnings`)
+
+5. **RTK exec resolution** — Robustly resolve `rtk` binary path using `which` (Unix) or `where` (Windows) fallback if not in PATH.
+   - File: `rtk-executable-resolver.ts`
+
+6. **Emoji sanitization** — RTK output may include emoji; strip or normalize them for cleaner output.
+   - File: `techniques/emoji.ts` (`sanitizeRtkEmojiOutput`)
+
+### Low Priority
+
+7. **Source code filtering** — Strip comments and excessive whitespace from source code reads to reduce token waste. Three levels: `none`, `minimal`, `aggressive`.
+   - File: `techniques/source.ts` (`detectLanguage`, `filterSourceCode`)
+   - Note: aggressive filtering can cause edit failures if old text includes comments; original warns about this
+
+8. **Windows compatibility** — Path separator normalization, `cmd.exe` vs `bash` handling. Only needed if Windows support is desired.
+   - File: `windows-command-helpers.ts`
+
+9. **Config modal UI** — Interactive TUI settings modal (beyond `/rtk` slash commands). Allows toggling options via `ctx.ui.select()` instead of editing `config.json` manually.
+   - File: `config-modal.ts`, `config-store.ts`
+   - Note: low priority for TUI-only usage; config file editing works fine
+
+### Nice to Have
+
+10. **Runtime status caching** — Cache RTK availability check for 30s to avoid repeated `rtk --version` calls.
+    - Key: `runtimeStatus.lastCheckedAt`, 30s staleness check
+
+11. **Bounded notice tracker** — Deduplicate warning/notification messages (e.g., "rtk binary unavailable" shown once, not every turn).
+    - File: `index.ts` (`createBoundedNoticeTracker`)
+
+
+12. **System prompt troubleshooting note** — When source filtering is enabled, inject a note into the system prompt warning about edit failures with filtered reads.
+    - File: `index.ts` (`shouldInjectSourceFilterTroubleshootingNote`)
+    - Hook: `before_agent_start`
+
 ## #WIP — Custom Message Renderer for Print Mode
 
 Print mode (`pi -p "..."`) only outputs the last assistant message's `text` content via `writeRawStdout()`. Custom extension messages injected via `pi.sendMessage()` with `display: true` are correctly added to the session and emitted via `session.subscribe()` (visible in JSON mode), but are **not printed to stdout** in text mode.
