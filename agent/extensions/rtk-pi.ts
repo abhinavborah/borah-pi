@@ -2,7 +2,7 @@
  * rtk-pi.ts — Minimal RTK integration for pi
  *
  * Hooks `tool_call` to rewrite bash commands via `rtk rewrite`.
- * Hooks `tool_result` to compact output with heuristic filters.
+ * Hooks `tool_result` to compact bash/grep/read output with heuristic filters.
  *
  * /rtk subcommands: show | verify | stats | clear-stats | reset | help
  *
@@ -31,6 +31,9 @@ interface RtkConfig {
   outputCompaction: {
     enabled: boolean;
     stripAnsi: boolean;
+    readCompaction: {
+      enabled: boolean;
+    };
     truncate: {
       enabled: boolean;
       maxChars: number;
@@ -62,6 +65,9 @@ const DEFAULT_CONFIG: RtkConfig = {
   outputCompaction: {
     enabled: true,
     stripAnsi: true,
+    readCompaction: {
+      enabled: true,
+    },
     truncate: {
       enabled: true,
       maxChars: 12000,
@@ -141,6 +147,58 @@ function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   if (maxLength < 3) return "...";
   return `${text.slice(0, maxLength - 3)}...`;
+}
+
+// ── read tool compaction ─────────────────────────────────────────────────────
+
+const PRESERVE_EXACT_LINE_THRESHOLD = 80;
+const SMART_TRUNCATE_LINE_THRESHOLD = 220;
+
+/**
+ * Detect language from file extension. Used for the truncation banner.
+ */
+function detectLanguage(filePath: string): string {
+  const lastDot = filePath.lastIndexOf(".");
+  if (lastDot === -1) return "";
+  const ext = filePath.slice(lastDot).toLowerCase();
+  return ext.replace(/^\.+/, "");
+}
+
+/**
+ * Check if a path is under a skills directory (should preserve exact reads).
+ */
+function isSkillPath(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, "/");
+  const skillRoots = [".pi/skills", ".agents/skills", "skills"];
+  return skillRoots.some(root => normalized.includes(`/${root}/`));
+}
+
+/**
+ * Compact read tool output: plain line truncation with RTK-style banner.
+ * - Files <= 80 lines: pass through unchanged
+ * - Files 81-220 lines: pass through unchanged (within threshold)
+ * - Files > 220 lines: truncate to 220, show banner
+ */
+function compactReadOutput(text: string, filePath: string): { text: string; changed: boolean } {
+  const lines = text.split("\n");
+  const lineCount = lines.length;
+  const ext = detectLanguage(filePath);
+
+  // Preserve exact output for short files
+  if (lineCount <= PRESERVE_EXACT_LINE_THRESHOLD) {
+    return { text, changed: false };
+  }
+
+  // Plain truncation to SMART_TRUNCATE_LINE_THRESHOLD — aligns with RTK's --max-lines
+  if (lineCount > SMART_TRUNCATE_LINE_THRESHOLD) {
+    const truncated = lines.slice(0, SMART_TRUNCATE_LINE_THRESHOLD).join("\n");
+    const extPart = ext ? ` .${ext}` : "";
+    const banner = `[RTK read${extPart}: ${lineCount}→${SMART_TRUNCATE_LINE_THRESHOLD}]`;
+    return { text: `${banner}\n${truncated}`, changed: true };
+  }
+
+  // Files 81-220 lines: pass through unchanged
+  return { text, changed: false };
 }
 
 function normalizeCommand(command: string): string | null {
@@ -519,6 +577,13 @@ export default function (pi: ExtensionAPI) {
       const result = compactGrepOutput(compactedText, config);
       compactedText = result.text;
       techniques.push(...result.techniques);
+    } else if (event.toolName === "read" && config.outputCompaction.readCompaction.enabled) {
+      const input = event.input as Record<string, unknown>;
+      const filePath = typeof input.path === "string" ? input.path : "";
+      if (filePath && isSkillPath(filePath)) return; // preserve skill reads
+      const result = compactReadOutput(compactedText, filePath);
+      if (result.changed) techniques.push("read");
+      compactedText = result.text;
     }
 
     if (techniques.length === 0) return;
