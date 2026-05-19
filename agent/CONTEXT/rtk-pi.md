@@ -7,7 +7,7 @@ This file is the handoff document for the rtk-pi extension. It captures all arch
 A minimal pi extension that:
 
 - Hooks `tool_call` to rewrite bash commands via `rtk rewrite` (e.g., `cat file` → `rtk read file`)
-- Hooks `tool_result` to compact bash/grep output with heuristic filters
+- Hooks `tool_result` to compact bash/grep/read output with heuristic filters
 - Persists stats to `stats.json` across invocations
 - Registers `/rtk` slash commands for status, verify, stats, clear-stats, reset, help
 
@@ -363,7 +363,7 @@ cd ~/.pi
 # Commit 1: Initial rtk-pi extension
 git commit -m "add rtk-pi extension: minimal rtk rewrite + output compaction
 - hooks tool_call to rewrite bash commands via rtk rewrite
-- hooks tool_result to compact bash/grep output with heuristics
+- hooks tool_result to compact bash/grep/read output with heuristics
 - persists stats to rtk-pi/stats.json across invocations
 - adds /rtk command for status, verify, stats, clear-stats, reset
 - documents architecture, known limitations, and testing in docs/rtk-pi.md"
@@ -383,21 +383,24 @@ git commit -m "docs: add #wip missing features sorted by priority"
 
 ### High Priority
 
-1. Read tool compaction — RTK rewrites `cat file` → `rtk read file`; compact read tool output
+1. **Read tool compaction** ✅ DONE — implemented in 598-line extension
 2. Streaming sanitization — Handle partial output via `tool_execution_update`
-3. Smart truncation — Truncate by line count, not just character count
+3. RTK exec resolution (which/where fallback) — robust path finding
+4. Bounded notice tracker — deduplicate warnings
 
 ### Medium Priority
 
-4. RTK hook warning stripping
-5. RTK exec resolution (which/where fallback)
-6. Emoji sanitization
+5. Smart truncation (by lines) — truncate by line count, not just char count
+6. Source code filtering — strip comments/whitespace
+7. RTK hook warning stripping
+8. Emoji sanitization
 
 ### Low Priority
 
-7. Source code filtering (strip comments)
-8. Windows compatibility
-9. Config modal UI
+9. Windows compatibility
+10. Config modal UI
+11. Runtime status caching
+12. System prompt troubleshooting note
 
 ### Nice to Have
 
