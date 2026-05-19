@@ -292,3 +292,152 @@ pi.registerMessageRenderer("rtk-pi", (message, options, theme, context) => {
 4. In print mode, this hooks into the existing `session.subscribe()` event stream that JSON mode uses
 
 **Note:** This is primarily a TUI concern. Since the primary usage is interactive TUI mode where custom messages are rendered via the TUI, the renderer may not be strictly necessary for the current use case. Print mode support is a nice-to-have but not a blocker.
+
+## #WIP — Unused RTK Native Commands
+
+rtk-pi only uses `rtk rewrite`. RTK provides 50+ native commands with their own output filters. These are completely or partially unused by rtk-pi.
+
+**Priority is based on:** (1) how often the command replaces verbose bash, (2) how much token savings RTK provides natively vs rtk-pi's own heuristics, (3) whether the tool is already available in pi (grep, read, etc. — which have their own handlers).
+
+> **For the next agent session:** When reading this file, before starting any implementation work, ask the user which command they want to implement next, starting from priority 1.
+
+### High Priority (rewrite targets — most impactful)
+
+1. **`rtk json <file>`** — Replace `cat *.json` with structured JSON viewer. RTK shows keys-only or compact values, great for large config files.
+   - Rewrite: `cat package.json` → `rtk json package.json` (RTK auto-detects JSON)
+   - RTK flags: `--keys-only`, `--depth N`
+   - Note: `cat foo.json | jq` is verbose; `rtk json foo.json` is direct
+
+2. **`rtk find <args>`** — Token-optimized find. Groups output by directory, shows compact tree.
+   - Rewrite: `find . -name '*.ts' | head -20` → `rtk find . -name '*.ts' --max 20`
+   - RTK native handles grouping — replaces both `find` and our `groupSearchOutput()` heuristics
+   - Note: `rtk find` accepts native `find` flags natively
+
+3. **`rtk tree [path]`** — Compact directory tree. Replaces `ls -R`, `find . -type d`.
+   - Rewrite: `ls -R src/` → `rtk tree src/`
+   - RTK output is token-compressed tree format
+
+4. **`rtk err <command>`** — Run a command and show only errors/warnings. Strip progress bars and noise.
+   - Rewrite: `npm run build 2>&1 | grep -i error` → `rtk err npm run build`
+   - This is a universal wrapper — could wrap ANY build/lint/test command
+   - Note: `rtk test` and `rtk lint` are specializations of this
+
+5. **`rtk deps`** — Summarize project dependencies. Replaces `cat package.json | head -50`, `cat Cargo.toml`.
+   - Rewrite: `cat package.json` (when it looks like a dep listing) → `rtk deps`
+   - Shows grouped deps by category, version ranges compressed
+
+6. **`rtk env`** — Show env vars with sensitive data masked. Replaces `cat .env`, `echo $VAR`.
+   - Rewrite: `cat .env` → `rtk env` (when file has ENV/ secrets)
+   - RTK auto-detects .env and filters sensitive keys
+
+### Medium Priority (rewrite targets — useful but less common)
+
+7. **`rtk wc <file>`** — Word/line/byte count without verbose padding. Replaces `wc -l`.
+   - Rewrite: `wc -l src/**/*.ts` → `rtk wc src/**/*.ts`
+   - RTK strips paths and padding for compact output
+
+8. **`rtk diff`** — Ultra-condensed diff. Replaces `git diff` and `diff file1 file2`.
+   - Rewrite: `diff -u a.ts b.ts` → `rtk diff`
+   - RTK shows only changed lines, grouped by file
+
+9. **`rtk log`** — Filter and deduplicate log output. Replaces `cat *.log | tail -100`.
+   - Rewrite: `tail -100 app.log` → `rtk log --tail-lines 100 app.log`
+   - RTK deduplicates repeated lines, strips timestamps
+
+10. **`rtk curl`** — Auto-detects JSON responses and shows schema. Replaces `curl ... | jq`.
+    - Rewrite: `curl https://api.example.com/data` → `rtk curl https://api.example.com/data`
+    - RTK detects JSON and shows schema instead of full response
+
+11. **`rtk gh`** — GitHub CLI with compact output. Replaces verbose `gh` output.
+    - Rewrite: `gh pr list` → `rtk gh pr list`
+    - RTK compresses table output, highlights PR state
+
+12. **`rtk docker`** — Docker commands with compact output.
+    - Rewrite: `docker ps`, `docker images` → `rtk docker ps`, `rtk docker images`
+    - RTK strips ASCII art, compresses table output
+
+### Low Priority (rewrite targets — niche or already covered)
+
+
+13. **`rtk aws <args>`** — AWS CLI with compact output. Force JSON, compress tables.
+    - Rewrite: `aws s3 ls` → `rtk aws s3 ls`
+    - Only if AWS CLI is commonly used
+
+14. **`rtk kubectl`** — Kubectl commands with compact output.
+    - Rewrite: `kubectl get pods` → `rtk kubectl get pods`
+    - Useful for K8s workflows
+
+15. **`rtk psql`** — PostgreSQL client with compact output.
+    - Rewrite: `psql -c "SELECT * FROM users"` → `rtk psql -c "..."`
+    - Strip borders, compress tables
+
+16. **`rtk glab`** — GitLab CLI with compact output.
+    - Rewrite: `glab mr list` → `rtk glab mr list`
+    - Similar to `rtk gh`
+
+17. **`rtk gradlew`** — Android Gradle wrapper with compact output.
+    - Rewrite: `./gradlew build` → `rtk gradlew build`
+    - Only relevant for Android projects
+
+18. **`rtk dotnet`** — .NET commands with compact output.
+    - Rewrite: `dotnet build`, `dotnet test` → `rtk dotnet build`, `rtk dotnet test`
+
+19. **`rtk rake`** / **`rtk rspec`** / **`rtk rubocop`** — Ruby tool wrappers.
+    - Rewrite: `rake test`, `rspec`, `rubocop` → `rtk rake test`, etc.
+
+20. **`rtk pip`** — Pip with compact output (auto-detects uv).
+    - Rewrite: `pip install foo` → `rtk pip install foo`
+
+21. **`rtk go`** — Go commands with compact output.
+    - Rewrite: `go build`, `go test` → `rtk go build`, `rtk go test`
+
+### Already Covered by pi Tools (lower rewrite priority)
+
+These commands have native pi tool equivalents. The pi tool handles the execution; RTK rewrite could still improve output format, but it's a secondary concern.
+
+| Command | pi tool | Notes |
+|---------|---------|-------|
+| `rtk grep` | ✅ grep tool | pi's grep tool already handles search; RTK rewrite may still be useful |
+| `rtk read` | ✅ read tool | Already works via `cat` → `rtk read` rewrite |
+| `rtk ls` | ✅ ls tool | Already works; RTK native output is better but our heuristics handle it |
+| `rtk git *` | ✅ bash | `rtk git status/diff/log/show` all work via rewrite; native output not used |
+| `rtk lint` / `rtk ruff` / `rtk mypy` | ✅ bash | Run via bash; RTK's grouped output not utilized |
+| `rtk test` / `rtk jest` / `rtk vitest` / `rtk pytest` | ✅ bash | Run via bash; RTK's failure-only output not utilized |
+| `rtk pnpm` / `rtk npm` / `rtk npx` | ✅ bash | Package manager wrappers, less impactful |
+| `rtk tsc` | ✅ bash | TypeScript compiler output grouped by file |
+| `rtk cargo` | ✅ bash | Rust build output |
+| `rtk playwright` | ✅ bash | E2E test output |
+| `rtk prisma` | ✅ bash | Prisma output compact |
+| `rtk next` | ✅ bash | Next.js build output |
+| `rtk prettier` / `rtk format` | ✅ bash | Format checker output |
+| `rtk rtk init` | ❌ not needed | RTK CLI setup, not relevant to pi integration |
+| `rtk discover` / `rtk session` | ❌ not needed | Claude Code session metrics, not pi |
+| `rtk hook *` | ❌ not needed | Claude Code / Gemini / Copilot hooks, not pi |
+| `rtk cc-economics` / `rtk gain` | ❌ not needed | Claude Code token tracking, not pi |
+| `rtk telemetry` | ❌ not needed | RTK internal telemetry |
+| `rtk learn` | ❌ not needed | RTK CLI learning from history |
+| `rtk trust` / `rtk verify` | ❌ not needed | Project-local TOML filters |
+| `rtk proxy` / `rtk run` | ❌ not needed | Shell passthrough |
+| `rtk pipe` | ❌ not needed | Unix pipe mode |
+| `rtk gt` / `rtk golangci-lint` | ❌ niche | Graphite/GitLab PR stacking, golangci-lint |
+| `rtk wget` | ❌ niche | Download wrapper |
+
+### How to Add a Rewrite Target
+
+Each rewrite target needs a pattern in the tool_call handler. Example for `rtk json`:
+
+```typescript
+// In tool_call handler, before the rtk rewrite call:
+// Detect JSON file reads that should use rtk json instead of rtk read
+if (/cat\s+.*\.json(?:\s|$)/.test(command)) {
+  // Rewrite: cat foo.json -> rtk json foo.json
+  // This is handled by rtk rewrite automatically!
+  // No extra code needed — just verify the pattern matches
+}
+```
+
+**Key insight:** Most `rtk <subcommand>` rewrites are handled automatically by `rtk rewrite "<original command>"`. The extension doesn't need to know about each command individually — it just calls `rtk rewrite` and RTK returns the appropriate `rtk <subcommand>` equivalent.
+
+
+The main work is verifying that `rtk rewrite` produces useful rewrites for each command type, and that the `tool_result` handler correctly processes the output from RTK-native commands.
+

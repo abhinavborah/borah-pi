@@ -424,7 +424,48 @@ git commit -m "docs: add #wip missing features sorted by priority"
 
 ---
 
-## Design Principles Going Forward
+## Unused RTK Native Commands
+
+rtk-pi only uses `rtk rewrite`. RTK provides 50+ native commands with their own output filters. See `docs/rtk-pi.md` for the full priority list.
+
+**Summary of what's used vs wasted:**
+- ✅ `rtk rewrite` — fully utilized (tool_call hook)
+- ✅ `rtk read` (via rewrite) — partially utilized (`cat` → `rtk read`)
+- ⚠️ `rtk git status/diff/log` — rewrite fires, but native RTK output is bypassed in favor of rtk-pi's own heuristics
+- ⚠️ `rtk ls` — rewrite fires, but RTK's token-optimized output bypassed
+- ❌ Everything else — completely unused
+
+**Root cause:** RTK exposes only `rtk rewrite <command>` to external hooks. The native output filters (`rtk json`, `rtk err`, etc.) are not accessible without running the actual RTK commands. rtk-pi rewrites commands and runs them via bash, but output goes through rtk-pi's own heuristic compaction — not RTK's native filters.
+
+### High Priority Unused Commands
+1. **`rtk json <file>`** — Replace `cat *.json`. RTK shows keys-only or compact values. Rewrite: `cat package.json` → `rtk json package.json`.
+2. **`rtk find <args>`** — Token-optimized find. Groups output by directory. Rewrite: `find . -name '*.ts'` → `rtk find . -name '*.ts'`.
+3. **`rtk tree [path]`** — Compact directory tree. Replaces `ls -R`.
+4. **`rtk err <command>`** — Run command, show only errors/warnings. Universal wrapper for any build/lint/test command.
+5. **`rtk deps`** — Summarize project dependencies. Replaces `cat package.json` when it looks like a dep listing.
+6. **`rtk env`** — Show env vars with sensitive data masked. Replaces `cat .env`.
+
+### Medium Priority Unused Commands
+7. **`rtk wc <file>`** — Word/line/byte count without padding. Replaces `wc -l`.
+8. **`rtk diff`** — Ultra-condensed diff. Replaces `diff file1 file2`.
+9. **`rtk log`** — Filter and deduplicate log output.
+10. **`rtk curl`** — Auto-detects JSON, shows schema instead of full response.
+11. **`rtk gh`** — GitHub CLI with compact output.
+12. **`rtk docker`** — Docker commands with compact output.
+
+### Low Priority Unused Commands
+13-21. `rtk aws`, `rtk kubectl`, `rtk psql`, `rtk glab`, `rtk gradlew`, `rtk dotnet`, Ruby wrappers, `rtk pip`, `rtk go`
+
+### Already Covered by pi Tools
+pi has native tools for `grep`, `read`, `ls`, `git` (via bash). The RTK rewrite for these still fires, but native RTK output is not used. See docs/rtk-pi.md for the full table.
+
+### Key Insight
+Most `rtk <subcommand>` rewrites are handled automatically by `rtk rewrite`. The extension just calls `rtk rewrite "<original command>"` and RTK returns the right `rtk <subcommand>` equivalent. No per-command logic needed in the extension.
+
+> **Before implementing any unused RTK command:** Ask the user which one they want to work on, starting from priority 1. See `docs/rtk-pi.md` for the full priority list.
+
+---
+
 
 1. **Keep it minimal** — pi-rtk-optimizer has ~8,500 lines. rtk-pi should stay under ~1000.
 2. **execSync for RTK** — `pi.exec()` with `shell: false` can't run shebang-based JS CLIs. Always use `require("child_process").execSync()` for RTK invocation.
