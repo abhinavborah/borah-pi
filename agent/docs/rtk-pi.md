@@ -213,3 +213,26 @@ This is a **minimal replacement** for pi-rtk-optimizer. Key differences:
 | `/rtk` commands | Vague/placeholder | Implemented with output |
 | Compaction techniques | Many | Core heuristics only |
 | TypeScript quality | Mixed | Clean, minimal interfaces |
+
+## #WIP — Custom Message Renderer for Print Mode
+
+Print mode (`pi -p "..."`) only outputs the last assistant message's `text` content via `writeRawStdout()`. Custom extension messages injected via `pi.sendMessage()` with `display: true` are correctly added to the session and emitted via `session.subscribe()` (visible in JSON mode), but are **not printed to stdout** in text mode.
+
+
+The clean fix without token cost is to register a custom message renderer so rtk-pi messages get routed through the TUI rendering pipeline:
+
+```typescript
+pi.registerMessageRenderer("rtk-pi", (message, options, theme, context) => {
+  // message: { customType: "rtk-pi", content: string, display: true, ... }
+  // Returns a Component rendered directly by the TUI — no LLM call
+  return { type: "text", text: message.content };
+});
+```
+
+**What to implement:**
+1. Register a renderer via `pi.registerMessageRenderer("rtk-pi", ...)` in the extension factory
+2. The renderer receives the custom message and returns a renderable component
+3. The TUI's `session.subscribe()` emits these messages; the renderer formats them for display
+4. In print mode, this hooks into the existing `session.subscribe()` event stream that JSON mode uses
+
+**Note:** This is primarily a TUI concern. Since the primary usage is interactive TUI mode where custom messages are rendered via the TUI, the renderer may not be strictly necessary for the current use case. Print mode support is a nice-to-have but not a blocker.
