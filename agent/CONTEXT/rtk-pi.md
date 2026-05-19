@@ -463,6 +463,51 @@ pi has native tools for `grep`, `read`, `ls`, `git` (via bash). The RTK rewrite 
 Most `rtk <subcommand>` rewrites are handled automatically by `rtk rewrite`. The extension just calls `rtk rewrite "<original command>"` and RTK returns the right `rtk <subcommand>` equivalent. No per-command logic needed in the extension.
 
 > **Before implementing any unused RTK command:** Ask the user which one they want to work on, starting from priority 1. See `docs/rtk-pi.md` for the full priority list.
+---
+
+## RTK Architecture Reference
+
+Extracted from RTK's CONTRIBUTING.md and docs/contributing/TECHNICAL.md. Informs the roadmap.
+
+### Core Design Principles
+1. **Correctness VS Token Savings** — respect verbose flags (--nocapture, --comments). rtK-pi has no flag awareness yet.
+2. **Transparency** — output must be a subset of original format, not a summary. rtK-pi creates summaries (trade-off for token savings).
+3. **Never Block** — filter failure falls back to raw output. rtK-pi follows this: returns undefined on no technique match.
+4. **Zero Overhead** — <10ms startup target. TypeScript extension overhead depends on pi's startup.
+
+### RTK Rewrite Pipeline
+rtK-pi uses `rtk rewrite` directly — it reuses RTK's full rule registry. No re-implementation needed.
+```
+LLM → hook shell → rewrite_cmd → rewrite_compound → rewrite_segment → classify_command
+```
+
+### Filter Modes
+| Mode | How | rtK-pi |
+|------|-----|--------|
+| CaptureOnly/Buffered | Buffer all, filter post-hoc | `tool_result` handler ✅ |
+| Streaming | Line-by-line filter as output arrives | `tool_execution_update` → WIP |
+| Passthrough | No filter, track only | None |
+
+### Flag-Awareness Gap (Design Gap #1)
+RTK detects verbose flags and adjusts compression. rtK-pi treats all commands the same. When the LLM explicitly asks for verbose output (`ls -la`, `cargo test -- --nocapture`), rtK-pi still compacts it. Future work.
+
+### RTK Command Ecosystems
+RTK organizes by: git, rust, js, python, go, dotnet, cloud, system, ruby.
+rtK-pi only handles system/ and git/ via heuristics. Missing: js/ (npm, pnpm, vitest, tsc, eslint), python/ (ruff, pytest, mypy), rust/ (cargo).
+
+### Transparency vs Summarization Trade-off
+RTK: returns shorter version of original format.
+rtK-pi: returns summary format — different format but higher token savings.
+Both are valid; rtK-pi chooses summarization for aggressive compression.
+
+### See Also
+- RTK CONTRIBUTING.md: https://github.com/rtk-ai/rtk/blob/develop/CONTRIBUTING.md
+- RTK TECHNICAL.md: https://github.com/rtk-ai/rtk/blob/develop/docs/contributing/TECHNICAL.md
+- RTK ARCHITECTURE.md: https://github.com/rtk-ai/rtk/blob/develop/docs/contributing/ARCHITECTURE.md
+- RTK cmds/README.md: https://github.com/rtk-ai/rtk/blob/develop/src/cmds/README.md
+
+---
+
 
 ---
 

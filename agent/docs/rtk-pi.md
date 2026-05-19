@@ -441,3 +441,109 @@ if (/cat\s+.*\.json(?:\s|$)/.test(command)) {
 
 The main work is verifying that `rtk rewrite` produces useful rewrites for each command type, and that the `tool_result` handler correctly processes the output from RTK-native commands.
 
+---
+
+## RTK Architecture Notes (from RTK CONTRIBUTING.md)
+
+These notes are extracted from [RTK's CONTRIBUTING.md](https://github.com/rtk-ai/rtk/blob/develop/CONTRIBUTING.md) and related docs. They inform rtk-pi's roadmap and design decisions.
+
+### Core Design Principles (RTK)
+
+
+1. **Correctness VS Token Savings** — When a user/LLM explicitly requests verbose output via flags (e.g., `git log --comments`, `cargo test -- --nocapture`), respect that intent. Filters should be flag-aware. rtK-pi doesn't have flag awareness yet — this is a future improvement.
+
+2. **Transparency** — RTK's output must be a valid, useful subset of the original tool's output — not a different format. Don't invent new output formats. rtK-pi's compaction creates summaries that ARE different formats from the original.
+
+
+3. **Never Block** — If a filter fails, fall back to raw output. RTK should never prevent a command from executing. rtK-pi follows this: `tool_result` returns `undefined` when no technique matches, passing through raw output.
+
+
+4. **Zero Overhead** — RTK targets <10ms startup. rtK-pi is a TypeScript extension; overhead depends on pi's startup time.
+
+
+### Command Classification (RTK rewrite pipeline)
+
+The rewrite pipeline flow in RTK:
+```
+LLM Agent → hook shell → rewrite_cmd → rewrite_compound → rewrite_segment → classify_command
+```
+
+`classify_command()` does:
+1. Check IGNORED_EXACT (cd, echo, ...)
+2. Check IGNORED_PREFIXES (rtk, mkdir, mv, ...)
+3. Strip env prefix (for pattern matching only)
+4. Normalize absolute paths
+5. Strip git global opts (`git -C /tmp status` → `git status`)
+6. Guard: cat/head/tail with redirect (`>`, `>>`) → Unsupported
+7. Match against REGEX_SET (60+ compiled patterns from rules.rs)
+8. Extract subcommand → lookup custom savings/status overrides
+9. Return Classification
+
+rtK-pi uses `rtk rewrite` directly — it doesn't reimplement this classification. This means rtK-pi benefits from RTK's rule registry automatically.
+
+### TOML vs Rust: Filter Implementation
+
+RTK has two filter implementations:
+
+| Type | When to use | Example |
+|------|-------------|---------|
+| **TOML filter** | Plain text, predictable line structure, regex line filtering, no state needed | brew, df, shellcheck, rsync |
+| **Rust module** | Structured output (JSON/NDJSON), state machine parsing, flag injection, cross-command routing | vitest, pytest, golangci-lint, gh |
+
+rtK-pi uses TypeScript heuristics — a third approach. It's closer to TOML filters (pattern matching on text) but less robust than Rust modules. The heuristic approach is simpler to implement but may miss edge cases.
+
+
+### Command Categories in RTK
+
+RTK organizes commands by ecosystem:
+
+| Ecosystem | Commands | Notes |
+|-----------|----------|-------|
+| git | git, gh, gt, diff | trailing_var_arg parsing, gh markdown filtering |
+| rust | cargo, runner | Cargo sub-enum routing, runner dual-mode |
+| js | npm, pnpm, vitest, lint, tsc, next, prettier, playwright, prisma | Package manager auto-detection, lint routing |
+| python | ruff, pytest, mypy, pip | JSON check vs text, state machine, uv auto-detection |
+| go | go test/build/vet, golangci-lint | NDJSON streaming, Go sub-enum pattern |
+| dotnet | dotnet, binlog, trx | Dotnet sub-enum |
+| cloud | aws, docker, kubectl, curl, wget, psql | JSON forced output |
+| system | ls, tree, read, grep, find, wc, env, json, log, deps, format, smart | format_cmd routing, filter levels, language detection |
+| ruby | rake, rspec, rubocop | JSON injection, bundle exec auto-detection |
+
+rtK-pi's current compaction only covers `system/` and `git/` ecosystem commands.
+
+### RTK Filter Modes (Execution)
+
+| Mode | How it works | rtK-pi equivalent |
+|------|-------------|-------------------|
+| **CaptureOnly** | Buffers all stdout, filters post-hoc, stderr streams live | `tool_result` handler (post-hoc) |
+| **Buffered** | Buffers stdout, filters, prints result | Same as above |
+| **Streaming** | Line-by-line filtering as output arrives | Future: `tool_execution_update` handler |
+| **Passthrough** | No filtering, just track usage | No equivalent in rtK-pi |
+
+rtK-pi currently only has the CaptureOnly/Buffered equivalent. Streaming is the #WIP highest priority feature.
+### What Belongs in RTK (In Scope)
+
+Commands that produce text output (100+ tokens) and can be compressed 60%+ without losing essential information:
+- Test runners (vitest, pytest, cargo test, go test)
+- Linters and type checkers (eslint, ruff, tsc, mypy)
+- Build tools (cargo build, dotnet build, make, next build)
+- VCS operations (git status/log/diff, gh pr/issue)
+- Package managers (pnpm, pip, cargo install, brew)
+- File operations (ls, tree, grep, find, cat/head/tail)
+- Infrastructure tools (docker, kubectl, terraform)
+
+Out of scope: Interactive TUIs (htop, vim), Binary output, Trivial commands, Commands with no text output.
+
+### Key Insight for rtK-pi Roadmap
+
+RTK's design philosophy of **flag-awareness**, **never blocking**, and **transparency** should guide rtK-pi's compaction heuristics:
+
+1. **Flag-awareness** — rtK-pi should NOT compact output when the LLM explicitly requested verbose output (e.g., `ls -la` vs `ls`). Currently all commands are treated the same.
+
+2. **Never block** — Already followed: `tool_result` returns `undefined` on no match.
+
+3. **Transparency** — rtK-pi's compaction creates SUMMARIES (like `"5 commits, +142/-89 ✓"`) which IS a different format. RTK's approach is to return a shorter version of the original format, not a summary. This is a design trade-off rtK-pi made for token savings vs format preservation.
+
+See [RTK CONTRIBUTING.md](https://github.com/rtk-ai/rtk/blob/develop/CONTRIBUTING.md) and [docs/contributing/TECHNICAL.md](https://github.com/rtk-ai/rtk/blob/develop/docs/contributing/TECHNICAL.md) for full reference.
+
+
