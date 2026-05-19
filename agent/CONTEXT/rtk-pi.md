@@ -5,6 +5,7 @@ This file is the handoff document for the rtk-pi extension. It captures all arch
 ## What Is rtk-pi
 
 A minimal pi extension that:
+
 - Hooks `tool_call` to rewrite bash commands via `rtk rewrite` (e.g., `cat file` → `rtk read file`)
 - Hooks `tool_result` to compact bash/grep output with heuristic filters
 - Persists stats to `stats.json` across invocations
@@ -17,6 +18,7 @@ A minimal pi extension that:
 ## Important Paths
 
 ### Extension & Config
+
 ```
 ~/.pi/agent/extensions/rtk-pi.ts          # Extension source (THIS FILE)
 ~/.pi/agent/extensions/rtk-pi/
@@ -27,19 +29,20 @@ A minimal pi extension that:
 ```
 
 ### Related Projects
+
 ```
 ~/.nvm/versions/node/v25.8.1/lib/node_modules/
   pi-rtk-optimizer/                        # Original extension (reference impl)
+https://github.com/MasuRii/pi-rtk-optimizer # pi-rtk-optimizer repo
   @earendil-works/pi-coding-agent/         # pi core (has ExtensionAPI types)
 ```
 
 ### RTK Binary
+
 ```
 /opt/homebrew/bin/rtk                      # RTK v0.40.0 installed via Homebrew
 https://github.com/rtk-ai/rtk             # RTK repo
 ```
-
----
 
 ## How to Run
 
@@ -66,6 +69,7 @@ pi --no-extensions -e ~/.pi/agent/extensions/rtk-pi.ts
 **Problem:** Initially used `pi.exec("rtk", ["rewrite", command], { timeout: 3000 })`. RTK uses `#!/usr/bin/env node` shebang. `pi.exec()` uses `shell: false` in `execCommand()`, which bypasses shell shebang resolution. RTK binary was never found.
 
 **Detection:**
+
 ```bash
 # pi.exec() was silently failing — exit code 1, no stdout
 # RTK's exit codes: 0/3=rewrite on stdout, 1=no rewrite, 2=error
@@ -73,9 +77,14 @@ pi --no-extensions -e ~/.pi/agent/extensions/rtk-pi.ts
 ```
 
 **Fix:** Replace `pi.exec()` with `require("child_process").execSync()`:
+
 ```typescript
 const { execSync } = require("child_process");
-rewritten = execSync(`rtk rewrite ${JSON.stringify(command)}`, { timeout: 3000 }).toString().trim();
+rewritten = execSync(`rtk rewrite ${JSON.stringify(command)}`, {
+  timeout: 3000,
+})
+  .toString()
+  .trim();
 ```
 
 **Note:** `execSync` runs via shell (`/bin/sh`), so JS executables with shebangs resolve correctly.
@@ -87,6 +96,7 @@ rewritten = execSync(`rtk rewrite ${JSON.stringify(command)}`, { timeout: 3000 }
 **Problem:** RTK exits code **3** with rewritten command on **stdout** — not by normal return. `execSync()` throws an exception with `status: 3`, and `err.stdout` contains the rewritten command.
 
 **Detection:**
+
 ```bash
 $ rtk rewrite "cat package.json"
 rtk read package.json
@@ -95,6 +105,7 @@ $ echo $?
 ```
 
 **Fix:** Catch the exception and extract stdout from it:
+
 ```typescript
 } catch (e) {
   const err = e as NodeJS.ErrnoException & { stdout: Buffer };
@@ -123,6 +134,7 @@ Extension error (command:rtk): config is not defined
 ```
 
 **Fix:** Move helpers **inside** the factory so they close over the factory-scoped `config` and `stats`:
+
 ```typescript
 export default function (pi: ExtensionAPI) {
   const { config } = loadPersisted();
@@ -140,6 +152,7 @@ export default function (pi: ExtensionAPI) {
 ### Bug 4: `tool_result` event type mismatch (WORKAROUND IN PLACE)
 
 **Problem:** `tool_result` event's `content` is typed as `unknown[]` in the runner, but pi's internal after-tool-call handler passes it as whatever the tool returned (array or single object). The extension code filters assuming it's an array:
+
 ```typescript
 const textBlocks = content.filter((c): c is { type: "text"; text: string } => ...);
 ```
@@ -151,6 +164,7 @@ const textBlocks = content.filter((c): c is { type: "text"; text: string } => ..
 ### Bug 5: `showRewriteNotifications` defaulting to `false` (BY DESIGN)
 
 **Original pi-rtk-optimizer** has `showRewriteNotifications: true` by default. rtk-pi defaults to `false` intentionally to reduce TUI noise. Can be changed in `config.json`:
+
 ```json
 { "showRewriteNotifications": true }
 ```
@@ -162,8 +176,9 @@ const textBlocks = content.filter((c): c is { type: "text"; text: string } => ..
 **Problem:** Originally `loadPersisted()` returned `{ config, stats }` and the factory did `const { config } = loadPersisted()`. But `PersistedData` interface was later changed to only include `config`, and the `stats` key was removed from `config.json`. The merge with `DEFAULT_STATS` in `loadPersisted()` was dead code.
 
 **Fix:** Separate `loadStats()`/`saveStats()` for the `stats.json` file. `loadPersisted()` only returns `config`. Stats are loaded separately:
+
 ```typescript
-let stats = loadStats();  // reads stats.json
+let stats = loadStats(); // reads stats.json
 function incrementStats(patch: Partial<RtkStats>) {
   stats = { ...stats, ...patch };
   saveStats(stats);
@@ -179,12 +194,15 @@ function incrementStats(patch: Partial<RtkStats>) {
 **Problem:** After removing `stats` from `PersistedData` interface, `savePersisted()` was no longer defined in the file (it was replaced by `saveStats()`). Any call to `savePersisted()` would crash.
 
 **Fix:** Re-added `savePersisted()` after the replacement:
+
 ```typescript
 function savePersisted(data: PersistedData): void {
   ensureConfigExists();
   try {
     writeFileSync(CONFIG_PATH, `${JSON.stringify(data, null, 2)}\n`, "utf-8");
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 ```
 
@@ -211,6 +229,7 @@ $ echo $?
 ```
 
 **Exit codes:**
+
 - `0`: Rewrite available (sometimes)
 - `1`: No rewrite needed (command already optimal)
 - `2`: Error
@@ -223,6 +242,7 @@ The rewritten command is ALWAYS on stdout. With `execSync`, it's in the caught e
 ## Extension API Notes
 
 ### `tool_call` Event
+
 - `event.toolName: string` — tool name (e.g., "bash")
 - `event.toolCallId: string` — unique call ID
 - `event.input: Record<string, unknown>` — tool arguments, **MUTABLE**
@@ -231,6 +251,7 @@ The rewritten command is ALWAYS on stdout. With `execSync`, it's in the caught e
 - Mutation to `event.input.command` is applied before tool execution
 
 ### `tool_result` Event
+
 - `event.toolName: string`
 - `event.toolCallId: string`
 - `event.input: Record<string, unknown>` — original args
@@ -241,9 +262,11 @@ The rewritten command is ALWAYS on stdout. With `execSync`, it's in the caught e
 - Return `undefined` to pass result through unchanged
 
 ### `session_subscribe` in print mode
+
 Custom messages with `display: true` are emitted via `session.subscribe()` (visible in JSON mode). Print mode's `writeRawStdout()` only prints the last assistant message's text content — **custom messages are NOT printed to stdout in text mode**. This is a pi print mode design, not an rtk-pi bug.
 
 ### `sendMessage()` options
+
 ```typescript
 pi.sendMessage({ customType: "rtk-pi", content: "text", display: true });
 // deliverAs options: "steer" (queue while streaming), "followUp" (after tools), "nextTurn" (next prompt)
@@ -255,10 +278,13 @@ pi.sendMessage({ customType: "rtk-pi", content: "text", display: true });
 ## pi-core Internal Notes
 
 ### Extension Loader
+
 `dist/core/extensions/loader.js` uses `jiti/static` with `VIRTUAL_MODULES` and `getAliases()` to resolve packages like `@earendil-works/pi-coding-agent` in both Bun binary and Node.js dev mode.
 
 ### `@earendil-works/pi-coding-agent` exports
+
 Available exports (`dist/index.d.ts`):
+
 - `ExtensionAPI`, `ExtensionContext`, `ExtensionCommandContext`
 - `isToolCallEventType`, `isBashToolResult`, `isGrepToolResult`, etc.
 - `createBashTool`, `createGrepTool`, etc.
@@ -266,15 +292,21 @@ Available exports (`dist/index.d.ts`):
 - `SessionManager`, `AgentSession`
 
 **Package exports field:**
+
 ```json
 {
   ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" },
-  "./hooks": { "import": "./dist/core/hooks/index.js", "types": "./dist/core/hooks/index.d.ts" }
+  "./hooks": {
+    "import": "./dist/core/hooks/index.js",
+    "types": "./dist/core/hooks/index.d.ts"
+  }
 }
 ```
 
 ### `ExtensionRunner.emitToolCall()`
+
 Located at `dist/core/extensions/runner.js`. Iterates extensions in load order. For each `tool_call` handler:
+
 1. Creates `ExtensionContext` via `runner.createContext()`
 2. Calls handler with `(event, ctx)`
 3. If handler returns `{ block: true }`, returns immediately (blocking)
@@ -284,7 +316,9 @@ Located at `dist/core/extensions/runner.js`. Iterates extensions in load order. 
 **Mutations to `event.input.command` ARE applied** — they're in-place mutations on the event object passed by reference.
 
 ### `ExtensionRunner.emitToolResult()`
+
 Located at `dist/core/extensions/runner.js`. For each `tool_result` handler:
+
 1. Creates a copy of `event`: `const currentEvent = { ...event }`
 2. If handler returns a patch, merges `content`, `details`, `isError` into `currentEvent`
 3. Handler 2 sees handler 1's patches
@@ -348,21 +382,25 @@ git commit -m "docs: add #wip missing features sorted by priority"
 ## WIP Priority List (from docs/rtk-pi.md)
 
 ### High Priority
+
 1. Read tool compaction — RTK rewrites `cat file` → `rtk read file`; compact read tool output
 2. Streaming sanitization — Handle partial output via `tool_execution_update`
 3. Smart truncation — Truncate by line count, not just character count
 
 ### Medium Priority
+
 4. RTK hook warning stripping
 5. RTK exec resolution (which/where fallback)
 6. Emoji sanitization
 
 ### Low Priority
+
 7. Source code filtering (strip comments)
 8. Windows compatibility
 9. Config modal UI
 
 ### Nice to Have
+
 10. Runtime status caching (30s TTL on RTK availability check)
 11. Bounded notice tracker (dedupe warnings)
 12. System prompt troubleshooting note
@@ -371,17 +409,18 @@ git commit -m "docs: add #wip missing features sorted by priority"
 
 ## Key Reference Sources
 
-| Source | Location | Purpose |
-|--------|----------|---------|
-| pi-rtk-optimizer (original) | `~/.nvm/.../node_modules/pi-rtk-optimizer/src/` | Reference implementation |
-| pi extension docs | `~/.nvm/.../node_modules/@earendil-works/pi-coding-agent/docs/extensions.md` | Extension API reference |
-| pi ExtensionAPI types | `~/.nvm/.../node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/types.d.ts` | Type definitions |
-| pi ExtensionRunner | `~/.nvm/.../node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/runner.js` | Event hook implementation |
-| pi AgentSession | `~/.nvm/.../node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session.js` | tool_call/tool_result integration |
-| RTK binary | `/opt/homebrew/bin/rtk` | Rewrites bash commands |
-| RTK repo | https://github.com/rtk-ai/rtk | RTK CLI tool |
-| rtk-pi docs | `~/.pi/agent/docs/rtk-pi.md` | Feature documentation |
-| rtk-pi context | `~/.pi/agent/CONTEXT/rtk-pi.md` | This file |
+| Source                         | Location                                                                                  | Purpose                           |
+| ------------------------------ | ----------------------------------------------------------------------------------------- | --------------------------------- |
+| pi-rtk-optimizer (original)    | `~/.nvm/.../node_modules/pi-rtk-optimizer/src/`                                           | Reference implementation          |
+| pi-rtk-optimizer (github repo) | https://github.com/MasuRii/pi-rtk-optimizer                                               | Reference implementation          |
+| pi extension docs              | `~/.nvm/.../node_modules/@earendil-works/pi-coding-agent/docs/extensions.md`              | Extension API reference           |
+| pi ExtensionAPI types          | `~/.nvm/.../node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/types.d.ts` | Type definitions                  |
+| pi ExtensionRunner             | `~/.nvm/.../node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/runner.js`  | Event hook implementation         |
+| pi AgentSession                | `~/.nvm/.../node_modules/@earendil-works/pi-coding-agent/dist/core/agent-session.js`      | tool_call/tool_result integration |
+| RTK binary                     | `/opt/homebrew/bin/rtk`                                                                   | Rewrites bash commands            |
+| RTK repo                       | https://github.com/rtk-ai/rtk                                                             | RTK CLI tool                      |
+| rtk-pi docs                    | `~/.pi/agent/docs/rtk-pi.md`                                                              | Feature documentation             |
+| rtk-pi context                 | `~/.pi/agent/CONTEXT/rtk-pi.md`                                                           | This file                         |
 
 ---
 
@@ -393,3 +432,4 @@ git commit -m "docs: add #wip missing features sorted by priority"
 4. **Helper functions inside factory** — any function using `config` or `stats` must be inside the `export default function(pi)` factory.
 5. **Partial patches for tool_result** — return `{ content }` not the full result object. Runner merges the rest.
 6. **Stats via incrementStats()** — always use `incrementStats({ field: newValue })` to ensure stats are written to disk after each update.
+
