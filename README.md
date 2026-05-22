@@ -27,13 +27,13 @@ Built on [pi-subagents](https://pi.dev/packages/pi-subagents) with Matt Pocock s
 
 | Agent               | Purpose                                                          | Context |
 | ------------------- | ---------------------------------------------------------------- | ------- |
-| **scout**           | Fast codebase recon — maps entry points, types, data flow, risks | fresh   |
-| **researcher**      | Web/docs research — searches, fetches, synthesizes evidence      | fresh   |
+| **scout**           | Fast codebase recon - maps entry points, types, data flow, risks | fresh   |
+| **researcher**      | Web/docs research - searches, fetches, synthesizes evidence      | fresh   |
 | **planner**         | Turns requirements into implementation plans                     | fork    |
-| **worker**          | Implementation — edits files, validates, escalates               | fork    |
-| **reviewer**        | Code review — correctness, tests, simplicity (fresh context)     | fresh   |
-| **oracle**          | Advisory — challenges assumptions, no edits                      | fork    |
-| **context-builder** | Strong handoff pass — gathers context + meta-prompt              | fresh   |
+| **worker**          | Implementation - edits files, validates, escalates               | fork    |
+| **reviewer**        | Code review - correctness, tests, simplicity (fresh context)     | fresh   |
+| **oracle**          | Advisory - challenges assumptions, no edits                      | fork    |
+| **context-builder** | Strong handoff pass - gathers context + meta-prompt              | fresh   |
 | **delegate**        | Lightweight generic delegate with parent-like behavior           | fork    |
 
 ### Core Orchestration Pattern
@@ -134,14 +134,35 @@ Uses `/diagnose` for hard bugs, `/grill-with-docs` for architectural decisions.
 
 ## Native Extensions
 
-Custom extensions installed locally in `~/.pi/agent/extensions/`:
+Custom extensions installed locally in `~/.pi/agent/extensions/`.
 
-| Extension                  | Tools                                                                                  | Purpose                                    |
-| -------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------ |
-| **context7.ts**            | `context7_resolve_library_id`, `context7_query_docs`                                   | Up-to-date library/framework documentation |
-| **deepwiki.ts**            | `deepwiki_read_wiki_structure`, `deepwiki_read_wiki_contents`, `deepwiki_ask_question` | GitHub repository documentation and AI Q&A |
-| **splash.ts**              | -                                                                                      | Splash screen on startup                   |
-| **tool-counter-footer.ts** | -                                                                                      | Tool usage counter in footer               |
+### Migrated from [disler/pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code)
+
+| Extension           | Shortcuts          | Purpose                                              |
+| ------------------- | ------------------ | ---------------------------------------------------- |
+| **theme-cycler.ts** | `Ctrl+.` / `Ctrl+,` | Cycle themes with picker or command                  |
+| **themeMap.ts**    | —                  | Per-extension theme assignments (utility module)     |
+
+#### theme-cycler.ts
+
+Theme cycling with keyboard shortcuts and command.
+
+**Shortcuts:**
+- `Ctrl+.` — Cycle to next theme
+- `Ctrl+,` — Cycle to previous theme
+
+**Commands:**
+- `/theme` — Open theme picker
+- `/theme <name>` — Switch directly (e.g., `/theme synthwave`)
+
+**Features:**
+- Status line shows current theme name with 🎨 icon
+- Color swatch widget briefly appears after switching
+- Default theme: `gruvbox-new`
+
+#### themeMap.ts
+
+Utility module providing theme mapping. Each extension can have a default theme assigned via `THEME_MAP`. When theme-cycler is primary, it defaults to `gruvbox-new`.
 
 ### Context7 Extension
 
@@ -149,8 +170,8 @@ Up-to-date library documentation. Interactive command: `/context7`
 
 **Tools:**
 
-- `context7_resolve_library_id` — Resolve library name to Context7 ID
-- `context7_query_docs` — Fetch docs for a library
+- `context7_resolve_library_id` - Resolve library name to Context7 ID
+- `context7_query_docs` - Fetch docs for a library
 
 **Usage:**
 
@@ -165,9 +186,9 @@ GitHub repository documentation and AI Q&A. Interactive command: `/deepwiki`
 
 **Tools:**
 
-- `deepwiki_read_wiki_structure` — List documentation topics
-- `deepwiki_read_wiki_contents` — View documentation
-- `deepwiki_ask_question` — Ask questions about a repo
+- `deepwiki_read_wiki_structure` - List documentation topics
+- `deepwiki_read_wiki_contents` - View documentation
+- `deepwiki_ask_question` - Ask questions about a repo
 
 ### Firecrawl MCP (Local)
 
@@ -206,10 +227,10 @@ Then run `/setup-matt-pocock-skills` to configure per-repo settings.
 
 | Skill                            | When to use                                                             | Best with           |
 | -------------------------------- | ----------------------------------------------------------------------- | ------------------- |
-| `/diagnose`                      | Hard bugs/performance — reproduce → minimize → hypothesize → fix → test | `oracle`, `worker`  |
+| `/diagnose`                      | Hard bugs/performance - reproduce → minimize → hypothesize → fix → test | `oracle`, `worker`  |
 | `/grill-with-docs`               | Grilling session + domain model alignment + ADRs                        | `planner`, `oracle` |
-| `/tdd`                           | Test-driven development — red-green-refactor loop                       | `worker`            |
-| `/triage`                        | Incoming bugs/features — triage through a state machine                 | `researcher`        |
+| `/tdd`                           | Test-driven development - red-green-refactor loop                       | `worker`            |
+| `/triage`                        | Incoming bugs/features - triage through a state machine                 | `researcher`        |
 | `/improve-codebase-architecture` | Refactoring opportunities                                               | periodic audits     |
 | `/zoom-out`                      | High-level code context in system terms                                 | `scout`             |
 | `/prototype`                     | Throwaway prototype for design exploration                              | before committing   |
@@ -305,7 +326,7 @@ archon serve
 
 ## Security (Recommended)
 
-### [nono](https://nono.sh) — Kernel-level sandbox for pi
+### [nono](https://nono.sh) - Kernel-level sandbox for pi
 
 nono wraps pi in an OS-level sandbox, restricting filesystem and network access to only what the agent needs. This prevents accidental or malicious access to sensitive paths like `~/.ssh`, `~/.aws`, and shell configs.
 
@@ -321,7 +342,7 @@ nono wraps pi in an OS-level sandbox, restricting filesystem and network access 
 # Install
 brew install nono
 
-# Add to ~/.zshrc — run pi sandboxed by default
+# Add to ~/.zshrc - run pi sandboxed by default
 alias pi='nono run --profile pi --allow-cwd -- pi'
 
 # Reload
