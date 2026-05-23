@@ -1,17 +1,16 @@
 {
-  "lastChangelogVersion": "0.74.1",
+  "lastChangelogVersion": "0.75.5",
   "defaultProvider": "opencode-go",
   "defaultModel": "minimax-m2.7",
   "enableInstallTelemetry": false,
-  "theme": "gruvbox-dark",
+  "theme": "gruvbox",
   "packages": [
     "npm:pi-rtk-optimizer",
     "npm:pi-mcp-adapter",
-    "npm:pi-intercom",
     "npm:pi-web-access",
-    "npm:pi-subagents",
     "extensions/deepwiki.ts",
-    "extensions/context7.ts"
+    "extensions/context7.ts",
+    "extensions/theme-cycler.ts"
   ],
   "defaultThinkingLevel": "medium"
 }
