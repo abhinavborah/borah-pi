@@ -5,11 +5,11 @@
 For non-trivial work, follow this loop:
 
 ```
-clarify → scout/research → planner → worker → parallel fresh reviewers → worker fix → validate
+clarify → scout/research → planner → builder → parallel fresh reviewers → builder fix → validate
 ```
 
 **Key rules:**
-- One writer thread only: `worker` implements, `reviewer` never silently edits
+- One writer thread only: `builder` implements, `reviewer` never silently edits
 - Fork for advisory threads (`oracle`); fresh context for adversarial reviewers
 - Escalate unapproved decisions upward; don't decide alone
 
@@ -26,7 +26,7 @@ Delegate focused work to child agents via `subagent(...)` or slash commands (`/r
 | `scout` | Fast codebase recon — entry points, key types, data flow, risks | fresh |
 | `researcher` | Web/docs research — official docs, specs, benchmarks, evidence | fresh |
 | `planner` | Turn requirements into a concrete implementation plan | fork |
-| `worker` | Implementation — edits files, validates, escalates unapproved decisions | fork |
+| `builder` | Implementation — edits files, validates, escalates unapproved decisions | fork |
 | `reviewer` | Code review with distinct angles — correctness, tests, simplicity | fresh |
 | `context-builder` | Stronger handoff pass — gathers context + meta-prompt | fresh |
 | `oracle` | Second opinion before acting — challenges assumptions, no edits | fork |
@@ -40,7 +40,7 @@ subagent({
   chain: [
     { agent: "scout", task: "Map the auth flow" },
     { agent: "planner", task: "Plan from {previous}" },
-    { agent: "worker", task: "Implement approved plan" }
+    { agent: "builder", task: "Implement approved plan" }
   ]
 })
 ```
@@ -72,6 +72,42 @@ subagent({ agent: "oracle", task: "Investigate this bug before we edit. Propose 
 
 ---
 
+## Chain Inference
+
+For non-trivial multi-step work, infer the appropriate chain from the user's prompt.
+Chains are defined in `~/.pi/agent/agents/agent-chain.yaml`.
+
+### Always Ask
+**When the user prompt is ambiguous or contains multiple signals, ALWAYS ask which chain to use.**
+Show the chain name AND description so the user can make an informed choice.
+
+
+Example:
+> I see your request involves planning and implementation. Which workflow would you like?
+> - `plan-build` — Plan then build (fast two-step)
+> - `full-review` — Scout → plan → build → review (thorough)
+> - `scout-flow` — Deep exploration and verification
+
+### Chain Keywords
+Match these keywords to chains:
+- "scout", "investigate", "explore", "find", "map" → `scout-flow`
+- "plan", "design", "approach" → `plan-build` or `plan-build-review`
+- "review", "check", "audit" → `full-review` or `plan-review-plan`
+- Multi-step / complex requests → `full-review`
+
+### Research Keywords → Prefix Researcher
+When these keywords appear, suggest adding `researcher` as the first step:
+- "research", "specs", "docs", "official", "internet", "search the internet"
+- "compare", "benchmark", "best practice", "alternative", "library"
+- "npm", "github", "api documentation", "RFC", "spec"
+
+If the user says "yes" to research prefix, prepend researcher to the chosen chain.
+
+### Fallback
+If no keyword match, always ask the user to choose from the available chains.
+
+---
+
 ## Skills (Matt Pocock)
 
 Small, composable, engineering-focused skills. Use at the right moment.
@@ -90,7 +126,7 @@ Small, composable, engineering-focused skills. Use at the right moment.
 |-------|-------------|------------|
 | `/diagnose` | Hard bugs or performance regressions — reproduce → minimize → hypothesize → fix → test | `oracle` |
 | `/grill-with-docs` | Grilling session + building shared language + ADRs | before `planner` |
-| `/tdd` | Test-driven development — red-green-refactor loop | before `worker` |
+| `/tdd` | Test-driven development — red-green-refactor loop | before `builder` |
 | `/triage` | Incoming bugs/features — triage through a state machine | `researcher` |
 | `/to-prd` | Convert a feature request into a PRD for the issue tracker | after `grill-me` |
 | `/to-issues` | Break a plan into independently-grabbable issues | after `planner` |
@@ -138,10 +174,10 @@ intercom({ action: "ask", to: "session", message: "..." })   // Blocking wait
 intercom({ action: "reply", message: "..." })  // Reply to pending ask
 ```
 
-### Planner-Worker Pattern
+### Planner-Builder Pattern
 
 ```
-Planner session                    Worker session
+Planner session                    Builder session
      │                                  │
      ├─── send(task) ──────────────────►│
      │                                  ├── implement
@@ -180,7 +216,7 @@ Requires Firecrawl running at `http://localhost:3002`.
 | Need external evidence | `/run researcher "Research X"` |
 | Hard decision before acting | `/run oracle "Advise on X"` |
 | Complex work ahead | `/grill-with-docs` first, then `/run planner` |
-| Implement feature | `/run worker` (after plan approved) |
+| Implement feature | `/run builder` (after plan approved) |
 | After implementation | Parallel `/run reviewer` (fresh context) |
 | Bug investigation | `/diagnose` or `/run oracle` |
 | New feature idea | `/grill-me` → `/to-prd` |
@@ -195,7 +231,7 @@ Requires Firecrawl running at `http://localhost:3002`.
 ## Anti-Patterns to Avoid
 
 1. **Don't chain reviewers** — run parallel fresh-context reviewers, then synthesize
-2. **Don't let a reviewer edit silently** — reviewer suggests, worker applies
+2. **Don't let a reviewer edit silently** — reviewer suggests, builder applies
 3. **Don't skip clarification** — use `/grill-me` or `/grill-with-docs` before planning
 4. **Don't fork for adversarial review** — use fresh context for reviewers
 5. **Don't delegate orchestration** — parent owns workflow, children execute tasks
