@@ -312,6 +312,7 @@ export default function (pi: ExtensionAPI) {
 		agentName: string,
 		task: string,
 		ctx: any,
+		signal?: AbortSignal,
 	): Promise<{ output: string; exitCode: number; elapsed: number }> {
 		const key = agentName.toLowerCase();
 		const state = agentStates.get(key);
@@ -380,6 +381,11 @@ export default function (pi: ExtensionAPI) {
 				env: { ...process.env },
 			});
 
+			const onAbort = signal
+				? () => proc.kill("SIGTERM")
+				: undefined;
+			if (onAbort) { signal.addEventListener("abort", onAbort, { once: true }); }
+
 			let buffer = "";
 
 			proc.stdout!.setEncoding("utf-8");
@@ -425,6 +431,10 @@ export default function (pi: ExtensionAPI) {
 			proc.stderr!.on("data", () => {});
 
 			proc.on("close", (code) => {
+				if (signal && onAbort) {
+					signal.removeEventListener("abort", onAbort);
+				}
+
 				if (buffer.trim()) {
 					try {
 						const event = JSON.parse(buffer);
@@ -496,7 +506,7 @@ export default function (pi: ExtensionAPI) {
 					});
 				}
 
-				const result = await dispatchAgent(agent, task, ctx);
+				const result = await dispatchAgent(agent, task, ctx, _signal);
 
 				const truncated = result.output.length > 8000
 					? result.output.slice(0, 8000) + "\n\n... [truncated]"
