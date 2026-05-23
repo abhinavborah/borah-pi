@@ -17,6 +17,8 @@
  * Commands:
  *   /chain             — switch active chain
  *   /chain-list        — list all available chains
+ *   /chain-show        — show the agent chain widget
+ *   /chain-hide        — hide the agent chain widget
  *
  * Usage: pi -e extensions/agent-chain.ts
  */
@@ -201,6 +203,7 @@ export default function (pi: ExtensionAPI) {
 	// Per-step state for the active chain
 	let stepStates: StepState[] = [];
 	let pendingReset = false;
+	let showGrid = true;
 
 	function loadChains(cwd: string) {
 		const agentDir = getAgentDir();
@@ -286,6 +289,11 @@ export default function (pi: ExtensionAPI) {
 
 	function updateWidget() {
 		if (!widgetCtx) return;
+
+		if (!showGrid) {
+			widgetCtx.ui.setWidget("agent-chain", undefined);
+			return;
+		}
 
 		widgetCtx.ui.setWidget("agent-chain", (_tui: any, theme: any) => {
 			const text = new Text("", 0, 1);
@@ -641,6 +649,26 @@ export default function (pi: ExtensionAPI) {
 			}).join("\n\n");
 
 			ctx.ui.notify(list, "info");
+		},
+	});
+
+	pi.registerCommand("chain-show", {
+		description: "Show the agent chain widget",
+		handler: async (_args, _ctx) => {
+			widgetCtx = _ctx;
+			showGrid = true;
+			updateWidget();
+			_ctx.ui.notify("Chain widget visible", "info");
+		},
+	});
+
+	pi.registerCommand("chain-hide", {
+		description: "Hide the agent chain widget",
+		handler: async (_args, _ctx) => {
+			widgetCtx = _ctx;
+			showGrid = false;
+			updateWidget();
+			_ctx.ui.notify("Chain widget hidden", "info");
 		},
 	});
 

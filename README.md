@@ -15,8 +15,8 @@ My personal Pi coding agent setup: built on [pi-subagents](https://pi.dev/packag
 │   ├── skills/              # Matt Pocock skills
 │   ├── themes/              # UI themes
 │   ├── AGENTS.md            # Global orchestration instructions
+│   ├── mcp.json             # MCP server configurations
 │   └── settings.json        # Configuration
-├── mcp.json                 # MCP server configurations
 ├── README.md                # docs about this project
 └── justfile                 # execution instructions via just
 ```
@@ -31,45 +31,65 @@ Built on [pi-subagents](https://pi.dev/packages/pi-subagents), [pi-vs-claude-cod
 
 | Agent               | Purpose                                                          | Context |
 | ------------------- | ---------------------------------------------------------------- | ------- |
-| **scout**           | Fast codebase recon - maps entry points, types, data flow, risks | fresh   |
-| **researcher**      | Web/docs research - searches, fetches, synthesizes evidence      | fresh   |
-| **planner**         | Turns requirements into implementation plans                     | fork    |
-| **worker**          | Implementation - edits files, validates, escalates               | fork    |
-| **reviewer**        | Code review - correctness, tests, simplicity (fresh context)     | fresh   |
-| **oracle**          | Advisory - challenges assumptions, no edits                      | fork    |
-| **context-builder** | Strong handoff pass - gathers context + meta-prompt              | fresh   |
-| **delegate**        | Lightweight generic delegate with parent-like behavior           | fork    |
-| **builder**         | Implementation with /tdd and /diagnose skills                    | fork    |
-| **documenter**      | Documentation and README generation                              | fork    |
-| **red-team**        | Security and adversarial testing                                 | fork    |
-| **plan-reviewer**   | Plan critic — reviews and validates implementation plans         | fork    |
+| **scout**           | Fast codebase recon - maps entry points, types, data flow, risks | fresh |
+| **researcher**      | Web/docs research - searches, fetches, synthesizes evidence      | fresh |
+| **planner**         | Turns requirements into implementation plans                     | fork |
+| **builder**         | Implementation with /tdd and /diagnose (defaultReads: context.md, plan.md) | fork |
+| **reviewer**        | Code review - correctness, tests, simplicity (fresh context)     | fresh |
+| **oracle**          | Advisory - challenges assumptions, no edits                      | fork |
+| **context-builder** | Strong handoff pass - gathers context + meta-prompt              | fresh |
+| **delegate**        | Lightweight generic delegate with parent-like behavior           | fork |
+| **documenter**      | Documentation and README generation                              | fork |
+| **red-team**        | Security and adversarial testing                                 | fork |
+| **plan-reviewer**   | Plan critic — reviews and validates implementation plans         | fork |
+
+### Pi Pi Expert Agents
+
+The `pi-pi` meta-agent uses 10 domain experts for parallel research:
+
+| Expert | Specialty |
+|--------|-----------|
+| **pi-orchestrator** | Primary meta-agent that coordinates all experts |
+| **agent-expert** | Agent .md frontmatter, teams.yaml, agent-team orchestration |
+| **cli-expert** | CLI arguments, flags, environment variables |
+| **config-expert** | settings.json, providers, models, keybindings |
+| **ext-expert** | Building extensions, custom tools, commands |
+| **keybinding-expert** | registerShortcut(), modifier combos, terminal compatibility |
+| **prompt-expert** | Prompt template .md format, positional arguments |
+| **skill-expert** | SKILL.md format, frontmatter fields, validation |
+| **theme-expert** | Theme JSON format, all 51 color tokens |
+| **tui-expert** | TUI components, custom rendering, overlays |
 
 ### Core Orchestration Pattern
 
 ```
-clarify → scout/research → planner → worker → parallel reviewers → worker fix → validate
+clarify → scout/research → planner → builder → parallel reviewers → builder fix → validate
 ```
 
 ### Scout
 
 Fast codebase recon that returns compressed context for handoff.
 
+**Tools:** `read`, `grep`, `find`, `ls`, `bash`, `write`, `intercom`, `context7_query_docs`
+
+**Skills (mandatory):** `/zoom-out` for system-level context mapping
+
+**Optional skills:** `/extract` to identify reusable components and design tokens
+
 ```typescript
 subagent({ agent: "scout", task: "Map the auth flow" });
 ```
-
-Uses `/zoom-out` skill for system-level context mapping.
 
 ### Researcher
 
 Autonomous web researcher with access to web scraping and documentation tools.
 
-**Tools available:**
-
+**Tools:**
 - `firecrawl_scrape`, `firecrawl_map`, `firecrawl_search`, `firecrawl_crawl` (via pi-web-access)
 - `web_search`, `fetch_content`, `get_search_content`, `code_search` (via pi-web-access)
-- `context7_resolve_library_id`, `context7_query_docs` (native extension)
-- `deepwiki_read_wiki_structure`, `deepwiki_read_wiki_contents`, `deepwiki_ask_question` (native extension)
+- `context7_resolve_library_id`, `context7_query_docs` (Context7 extension)
+- `deepwiki_read_wiki_structure`, `deepwiki_read_wiki_contents`, `deepwiki_ask_question` (DeepWiki extension)
+- `playwright_navigate`, `playwright_screenshot`, `playwright_click`, `playwright_fill`, `playwright_evaluate` (Playwright MCP)
 
 ```typescript
 subagent({
@@ -82,8 +102,9 @@ subagent({
 
 Creates implementation plans from context and requirements.
 
-**Mandatory skill usage:**
+**Tools:** `read`, `grep`, `find`, `ls`, `write`, `context7_*`, `deepwiki_*`, `firecrawl_scrape`, `firecrawl_search`, `firecrawl_crawl`
 
+**Skills (mandatory):**
 - `/grill-with-docs` to challenge plan against domain model
 - `/to-issues` to break plan into independently-grabbable tickets
 
@@ -92,27 +113,34 @@ subagent({
   chain: [
     { agent: "scout", task: "Map the auth flow" },
     { agent: "planner", task: "Plan from {previous}" },
-    { agent: "worker", task: "Implement approved plan" },
+    { agent: "builder", task: "Implement approved plan" },
   ],
 });
 ```
 
-### Worker
+### Builder
 
 Implementation agent with mandatory Matt Pocock skill usage.
 
-**Mandatory skills:**
+**Tools:** `read`, `write`, `edit`, `bash`, `grep`, `find`, `ls`, `contact_supervisor`, `context7_query_docs`, `context7_search_docs`
 
+**Skills (mandatory):**
 - `/tdd` for new features (red-green-refactor loop)
 - `/diagnose` for bug fixes (reproduce → minimize → hypothesize → fix → test)
 
+**Context:** Auto-reads `context.md`, `plan.md` on spawn
+
 ```typescript
-subagent({ agent: "worker", task: "Implement the auth middleware" });
+subagent({ agent: "builder", task: "Implement the auth middleware" });
 ```
 
 ### Reviewer
 
 Code review with distinct angles from fresh context (no parent history).
+
+**Tools:** `read`, `bash`, `grep`, `find`, `ls`, `write`, `contact_supervisor`, `playwright_navigate`, `playwright_screenshot`, `playwright_click`, `playwright_fill`, `context7_query_docs`, `context7_search_docs`
+
+**Skills:** `/audit` (comprehensive quality), `/polish` (final pass), `/optimize` (performance)
 
 ```typescript
 subagent({
@@ -129,6 +157,12 @@ subagent({
 
 Second opinion before acting. Challenges assumptions, no edits.
 
+**Tools:** `read`, `grep`, `find`, `ls`, `bash`, `write`, `intercom`, `firecrawl_scrape`, `firecrawl_search`, `context7_query_docs`, `context7_search_docs`
+
+**Skills (mandatory):** `/diagnose` for hard bugs
+
+**Optional skills:** `/grill-with-docs` for architectural decisions, `/distill` for distilling complex information
+
 ```typescript
 subagent({
   agent: "oracle",
@@ -136,7 +170,78 @@ subagent({
 });
 ```
 
-Uses `/diagnose` for hard bugs, `/grill-with-docs` for architectural decisions.
+### Context Builder
+
+Strong setup pass - gathers code context and writes handoff material.
+
+**Tools:** `read`, `grep`, `find`, `ls`, `bash`, `write`, `firecrawl_*`, `web_search`, `context7_*`, `deepwiki_*`, `intercom`, `contact_supervisor`, `playwright_navigate`, `playwright_screenshot`
+
+**Output:** `context.md` + `meta-prompt.md`
+
+```typescript
+subagent({
+  agent: "context-builder",
+  task: "Gather context for the auth module",
+});
+```
+
+### Delegate
+
+Lightweight generic delegate with parent-like behavior.
+
+**Tools:** `read`, `grep`, `find`, `ls`, `bash`, `write`, `edit`, `intercom`, `context7_query_docs`, `context7_search_docs`
+
+```typescript
+subagent({
+  agent: "delegate",
+  task: "Quick task or hot path",
+});
+```
+
+### Documenter
+
+Documentation and README generation.
+
+**Tools:** `read`, `write`, `edit`, `grep`, `find`, `ls`, `contact_supervisor`, `firecrawl_scrape`, `firecrawl_search`, `firecrawl_crawl`
+
+**Skills:** `/onboard` (first-time UX), `/adapt` (cross-platform), `/humanizer` (natural writing), `/bolder` (visual amplification)
+
+```typescript
+subagent({
+  agent: "documenter",
+  task: "Write README for the new API",
+});
+```
+
+### Red Team
+
+Security and adversarial testing.
+
+**Tools:** `read`, `bash`, `grep`, `find`, `ls`, `contact_supervisor`, `playwright_navigate`, `playwright_screenshot`, `playwright_click`, `playwright_fill`, `firecrawl_scrape`, `firecrawl_search`
+
+**Skills:** `/audit` (comprehensive security review), `/harden` (resilience improvement)
+
+```typescript
+subagent({
+  agent: "red-team",
+  task: "Security review for the auth module",
+});
+```
+
+### Plan Reviewer
+
+Plan critic - reviews, challenges, and validates implementation plans.
+
+**Tools:** `read`, `grep`, `find`, `ls`, `write`, `contact_supervisor`, `context7_query_docs`, `context7_search_docs`, `deepwiki_search`, `deepwiki_ask`
+
+**Skills:** `/improve-codebase-architecture` (refactoring opportunities), `/distill` (strip to essence)
+
+```typescript
+subagent({
+  agent: "plan-reviewer",
+  task: "Review the auth implementation plan",
+});
+```
 
 ---
 
@@ -290,6 +395,21 @@ Theme cycling with keyboard shortcuts and command.
 
 Utility module providing theme mapping. Each extension can have a default theme assigned via `THEME_MAP`. When theme-cycler is primary, it defaults to `gruvbox-new`.
 
+#### splash.ts
+
+ASCII art splash screen on session start.
+
+**Features:**
+
+- Two-column layout: logo/tagline (left), stats/shortcuts (right)
+- Theme-aware colors with configurable border styles
+- Displays: CWD, extensions loaded, skills loaded, tools available
+- Quick tips for commands and navigation
+- Auto-dismisses on first user message
+- Configurable via `~/.pi/agent/art/splash.json`
+
+**No registered commands** — event-driven (session_start, user_message, session_shutdown).
+
 ### Context7 Extension
 
 Up-to-date library documentation. Interactive command: `/context7`
@@ -298,6 +418,7 @@ Up-to-date library documentation. Interactive command: `/context7`
 
 - `context7_resolve_library_id` - Resolve library name to Context7 ID
 - `context7_query_docs` - Fetch docs for a library
+- `context7_search_docs` - Search library docs
 
 **Usage:**
 
@@ -305,6 +426,8 @@ Up-to-date library documentation. Interactive command: `/context7`
 subagent({ agent: "researcher", task: "How to use Prisma transactions?" });
 // researcher uses context7_* tools automatically
 ```
+
+**Used by:** scout, planner, builder, reviewer, oracle, delegate, plan-reviewer
 
 ### DeepWiki Extension
 
@@ -315,6 +438,24 @@ GitHub repository documentation and AI Q&A. Interactive command: `/deepwiki`
 - `deepwiki_read_wiki_structure` - List documentation topics
 - `deepwiki_read_wiki_contents` - View documentation
 - `deepwiki_ask_question` - Ask questions about a repo
+
+
+**Used by:** planner, plan-reviewer
+
+### Playwright MCP
+
+Browser automation for web testing, screenshots, and scraping.
+
+```json
+"playwright": {
+  "command": "npx",
+  "args": ["@playwright/mcp@latest"]
+}
+```
+
+**Tools:** `playwright_navigate`, `playwright_screenshot`, `playwright_click`, `playwright_fill`, `playwright_evaluate`
+
+**Used by:** reviewer, researcher, red-team, context-builder
 
 ### Firecrawl MCP (Local)
 
@@ -337,6 +478,8 @@ cd ~/Developer/firecrawl && docker compose up -d
 | `firecrawl_extract` | Structured data extraction |
 | `firecrawl_agent` | Autonomous research agent |
 
+**Used by:** planner, oracle, documenter, red-team
+
 ---
 
 ## Matt Pocock Skills
@@ -347,18 +490,34 @@ High-quality engineering practices for AI coding agents. Installed via:
 npx skills@latest add mattpocock/skills
 ```
 
+**Skill locations:**
+
+- **Primary source:** `~/.agents/skills/` (40 skills installed via Matt Pocock's installer)
+- **Symlinks:** `~/.pi/agent/skills/` (automatically synced from primary)
+- **Local skills:** `~/.pi/agent/skills/local/` (custom skills: `bowser`, `graphify`, `supacode-cli`)
+
 Then run `/setup-matt-pocock-skills` to configure per-repo settings.
 
 ### Engineering Skills
 
 | Skill                            | When to use                                                             | Best with           |
 | -------------------------------- | ----------------------------------------------------------------------- | ------------------- |
-| `/diagnose`                      | Hard bugs/performance - reproduce → minimize → hypothesize → fix → test | `oracle`, `worker`  |
+| `/diagnose`                      | Hard bugs/performance - reproduce → minimize → hypothesize → fix → test | `oracle`, `builder`  |
 | `/grill-with-docs`               | Grilling session + domain model alignment + ADRs                        | `planner`, `oracle` |
-| `/tdd`                           | Test-driven development - red-green-refactor loop                       | `worker`            |
+| `/tdd`                           | Test-driven development - red-green-refactor loop                       | `builder`          |
 | `/triage`                        | Incoming bugs/features - triage through a state machine                 | `researcher`        |
-| `/improve-codebase-architecture` | Refactoring opportunities                                               | periodic audits     |
 | `/zoom-out`                      | High-level code context in system terms                                 | `scout`             |
+| `/extract`                       | Identify reusable components, design tokens, patterns                   | `scout`             |
+| `/improve-codebase-architecture` | Refactoring opportunities - consolidation, decoupling, testability      | `plan-reviewer`     |
+| `/distill`                       | Strip to essence - distill complex information into essence             | `oracle`, `plan-reviewer` |
+| `/audit`                         | Comprehensive quality review - accessibility, performance, security      | `reviewer`, `red-team` |
+| `/polish`                        | Final quality pass - alignment, spacing, consistency, detail             | `reviewer`         |
+| `/optimize`                      | Performance improvements - loading speed, rendering, animations          | `reviewer`         |
+| `/onboard`                       | Design onboarding flows and first-time user experiences                  | `documenter`       |
+| `/adapt`                         | Adapt designs across different screen sizes and contexts                | `documenter`       |
+| `/humanizer`                     | Remove AI writing patterns and make text natural                        | `documenter`       |
+| `/bolder`                        | Amplify safe designs to make them more visually interesting              | `documenter`       |
+| `/harden`                        | Improve interface resilience - error handling, i18n, edge cases          | `red-team`         |
 | `/prototype`                     | Throwaway prototype for design exploration                              | before committing   |
 | `/to-issues`                     | Break plan into independently-grabbable issues                          | `planner`           |
 | `/to-prd`                        | Convert feature request into PRD                                        | after `/grill-me`   |
@@ -573,7 +732,7 @@ Reload: `source ~/.zshrc`
 | Need external evidence      | `/run researcher "Research X"`                |
 | Hard decision before acting | `/run oracle "Advise on X"`                   |
 | Complex work ahead          | `/grill-with-docs` first, then `/run planner` |
-| Implement feature           | `/run worker` (after plan approved)           |
+| Implement feature           | `/run builder` (after plan approved)           |
 | After implementation        | Parallel `/run reviewer` (fresh context)      |
 | Bug investigation           | `/diagnose` or `/run oracle`                  |
 | New feature idea            | `/grill-me` → `/to-prd`                       |

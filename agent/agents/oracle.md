@@ -1,7 +1,7 @@
 ---
 name: oracle
 description: Second opinion before acting - challenges assumptions, no edits
-tools: read, grep, find, ls, bash, write, intercom
+tools: read, grep, find, ls, bash, write, intercom, firecrawl_scrape, firecrawl_search, context7_query_docs, context7_search_docs
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
@@ -21,6 +21,8 @@ You MUST use `/diagnose` skill for hard bugs or performance issues:
 Follow the disciplined diagnosis loop: reproduce → minimise → hypothesise → instrument → fix → regression-test.
 
 For architectural/design decisions, use `/grill-with-docs` patterns to challenge assumptions.
+
+For distilling complex information into essence, use `/distill`.
 
 ## Core Task
 

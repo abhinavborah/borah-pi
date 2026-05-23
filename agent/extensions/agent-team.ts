@@ -47,6 +47,8 @@ interface AgentState {
 	sessionFile: string | null;
 	runCount: number;
 	timer?: ReturnType<typeof setInterval>;
+	tokensUsed: number;
+	contextWindow: number;
 }
 
 // ── Display Name Helper ──────────────────────────
@@ -146,7 +148,6 @@ export default function (pi: ExtensionAPI) {
 	let showGrid = true;
 	let widgetCtx: any;
 	let sessionDir = "";
-	let contextWindow = 0;
 
 	function loadAgents(cwd: string) {
 		const agentDir = getAgentDir();
@@ -177,10 +178,11 @@ export default function (pi: ExtensionAPI) {
 		}
 	}
 
-	function activateTeam(teamName: string) {
+	function activateTeam(teamName: string, contextCtx?: any) {
 		activeTeamName = teamName;
 		const members = teams[teamName] || [];
 		const defsByName = new Map(allAgentDefs.map(d => [d.name.toLowerCase(), d]));
+		const contextWindow = widgetCtx?.model?.contextWindow || contextCtx?.model?.contextWindow || 200000;
 
 		agentStates.clear();
 		for (const member of members) {
@@ -198,6 +200,8 @@ export default function (pi: ExtensionAPI) {
 				contextPct: 0,
 				sessionFile: existsSync(sessionFile) ? sessionFile : null,
 				runCount: 0,
+				tokensUsed: 0,
+				contextWindow,
 			});
 		}
 
@@ -228,10 +232,13 @@ export default function (pi: ExtensionAPI) {
 		const statusLine = theme.fg(statusColor, statusStr + timeStr);
 		const statusVisible = statusStr.length + timeStr.length;
 
-		// Context bar: 5 blocks + percent
+		// Context bar: show tokens / contextWindow (percentage)
+		const tokensStr = state.tokensUsed.toLocaleString();
+		const cwStr = state.contextWindow.toLocaleString();
+		const pctStr = state.contextPct.toFixed(1) + "%";
 		const filled = Math.ceil(state.contextPct / 20);
 		const bar = "#".repeat(filled) + "-".repeat(5 - filled);
-		const ctxStr = `[${bar}] ${Math.ceil(state.contextPct)}%`;
+		const ctxStr = `[${bar}] ${tokensStr} / ${cwStr} (${pctStr})`;
 		const ctxLine = theme.fg("dim", ctxStr);
 		const ctxVisible = ctxStr.length;
 
@@ -411,15 +418,17 @@ export default function (pi: ExtensionAPI) {
 							updateWidget();
 						} else if (event.type === "message_end") {
 							const msg = event.message;
-							if (msg?.usage && contextWindow > 0) {
-								state.contextPct = ((msg.usage.input || 0) / contextWindow) * 100;
+							if (msg?.usage?.input) {
+								state.tokensUsed = msg.usage.input;
+								state.contextPct = (state.tokensUsed / state.contextWindow) * 100;
 								updateWidget();
 							}
 						} else if (event.type === "agent_end") {
 							const msgs = event.messages || [];
 							const last = [...msgs].reverse().find((m: any) => m.role === "assistant");
-							if (last?.usage && contextWindow > 0) {
-								state.contextPct = ((last.usage.input || 0) / contextWindow) * 100;
+							if (last?.usage?.input) {
+								state.tokensUsed = last.usage.input;
+								state.contextPct = (state.tokensUsed / state.contextWindow) * 100;
 								updateWidget();
 							}
 						}
@@ -602,7 +611,7 @@ export default function (pi: ExtensionAPI) {
 
 			const idx = options.indexOf(choice);
 			const name = teamNames[idx];
-			activateTeam(name);
+			activateTeam(name, widgetCtx);
 			updateWidget();
 			ctx.ui.setStatus("agent-team", `Team: ${name} (${agentStates.size})`);
 			ctx.ui.notify(`Team: ${name} — ${Array.from(agentStates.values()).map(s => displayName(s.def.name)).join(", ")}`, "info");
@@ -715,8 +724,6 @@ ${agentCatalog}`,
 			widgetCtx.ui.setWidget("agent-team", undefined);
 		}
 		widgetCtx = _ctx;
-		contextWindow = _ctx.model?.contextWindow || 0;
-
 		// Wipe old agent session files so subagents start fresh
 		const agentDir = getAgentDir();
 		const sessDir = join(agentDir, "agent-sessions");
@@ -733,7 +740,7 @@ ${agentCatalog}`,
 		// Default to first team — use /agents-team to switch
 		const teamNames = Object.keys(teams);
 		if (teamNames.length > 0) {
-			activateTeam(teamNames[0]);
+			activateTeam(teamNames[0], _ctx);
 		}
 
 		// Lock down to dispatcher-only (tool already registered at top level)
@@ -759,13 +766,17 @@ ${agentCatalog}`,
 				const model = _ctx.model?.id || "no-model";
 				const usage = _ctx.getContextUsage();
 				const pct = usage ? usage.percent : 0;
+				const tokens = usage?.tokens || 0;
+				const cw = usage?.contextWindow || 200000;
 				const filled = Math.round(pct / 10);
 				const bar = "#".repeat(filled) + "-".repeat(10 - filled);
+				const tokensStr = (tokens / 1000).toFixed(1) + "K";
+				const cwStr = (cw / 1000).toFixed(0) + "K";
 
 				const left = theme.fg("dim", ` ${model}`) +
 					theme.fg("muted", " · ") +
 					theme.fg("accent", activeTeamName);
-				const right = theme.fg("dim", `[${bar}] ${Math.round(pct)}% `);
+				const right = theme.fg("dim", `[${bar}] ${tokensStr}/${cwStr} `);
 				const pad = " ".repeat(Math.max(1, width - visibleWidth(left) - visibleWidth(right)));
 
 				return [truncateToWidth(left + pad + right, width)];

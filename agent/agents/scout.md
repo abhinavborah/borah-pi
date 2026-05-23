@@ -1,7 +1,7 @@
 ---
 name: scout
 description: Fast recon and codebase exploration
-tools: read,grep,find,ls,bash,write,intercom
+tools: read,grep,find,ls,bash,write,intercom,context7_query_docs
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
@@ -19,6 +19,8 @@ You MUST use the `/zoom-out` skill pattern for ALL reconnaissance work. Before e
 ```
 /use zoom-out
 ```
+
+You MAY also use `/extract` to identify reusable components, design tokens, and patterns for systematic extraction.
 
 Then continue with your standard scouting tools. The zoom-out pattern ensures you provide a higher-level map of modules and callers using domain vocabulary.
 

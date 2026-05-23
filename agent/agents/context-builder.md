@@ -1,7 +1,7 @@
 ---
 name: context-builder
 description: Stronger handoff pass - gathers context + meta-prompt
-tools: read, grep, find, ls, bash, write, firecrawl_scrape, firecrawl_search, firecrawl_crawl, firecrawl_extract, firecrawl_agent, web_search, fetch_content, get_search_content, code_search, context7_resolve_library_id, context7_query_docs, deepwiki_read_wiki_structure, deepwiki_ask_question, intercom, contact_supervisor
+tools: read, grep, find, ls, bash, write, firecrawl_scrape, firecrawl_search, firecrawl_crawl, firecrawl_extract, firecrawl_agent, web_search, fetch_content, get_search_content, code_search, context7_resolve_library_id, context7_query_docs, deepwiki_read_wiki_structure, deepwiki_ask_question, intercom, contact_supervisor, playwright_navigate, playwright_screenshot
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true

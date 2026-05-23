@@ -1,7 +1,7 @@
 ---
 name: delegate
 description: Lightweight generic delegate when you want parent-like behavior
-tools: read, grep, find, ls, bash, write, edit, intercom
+tools: read, grep, find, ls, bash, write, edit, intercom, context7_query_docs, context7_search_docs
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true

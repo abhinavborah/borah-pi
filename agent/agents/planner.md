@@ -1,7 +1,7 @@
 ---
 name: planner
 description: Architecture and implementation planning
-tools: read,grep,find,ls,write,context7_resolve_library_id,context7_query_docs,deepwiki_read_wiki_structure,deepwiki_ask_question,intercom
+tools: read,grep,find,ls,write,context7_resolve_library_id,context7_query_docs,context7_search_docs,deepwiki_read_wiki_structure,deepwiki_ask_question,intercom,firecrawl_scrape,firecrawl_search,firecrawl_crawl
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
