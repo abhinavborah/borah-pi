@@ -2,6 +2,8 @@
 
 My personal Pi coding agent setup: built on [pi-subagents](https://pi.dev/packages/pi-subagents) with custom agents, Matt Pocock skills, and MCP integrations.
 
+![demo](./demo/demo.png)
+
 ## What's Included
 
 ```
@@ -21,7 +23,7 @@ My personal Pi coding agent setup: built on [pi-subagents](https://pi.dev/packag
 
 ## Custom Agents (pi-subagents)
 
-Built on [pi-subagents](https://pi.dev/packages/pi-subagents) with Matt Pocock skills and MCP integrations. Each agent is defined in `~/.pi/agent/agents/` and invoked via `/run`, `/chain`, or `/parallel`.
+Built on [pi-subagents](https://pi.dev/packages/pi-subagents), [pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code) with Matt Pocock skills and MCP integrations. Each agent is defined in `~/.pi/agent/agents/` and invoked via `/run`, `/chain`, or `/parallel`.
 
 ### Available Agents
 
@@ -35,10 +37,10 @@ Built on [pi-subagents](https://pi.dev/packages/pi-subagents) with Matt Pocock s
 | **oracle**          | Advisory - challenges assumptions, no edits                      | fork    |
 | **context-builder** | Strong handoff pass - gathers context + meta-prompt              | fresh   |
 | **delegate**        | Lightweight generic delegate with parent-like behavior           | fork    |
-| **builder**         | Implementation with /tdd and /diagnose skills                   | fork    |
-| **documenter**     | Documentation and README generation                              | fork    |
+| **builder**         | Implementation with /tdd and /diagnose skills                    | fork    |
+| **documenter**      | Documentation and README generation                              | fork    |
 | **red-team**        | Security and adversarial testing                                 | fork    |
-| **plan-reviewer**   | Plan critic — reviews and validates implementation plans          | fork    |
+| **plan-reviewer**   | Plan critic — reviews and validates implementation plans         | fork    |
 
 ### Core Orchestration Pattern
 
@@ -142,17 +144,19 @@ Custom extensions installed locally in `~/.pi/agent/extensions/`.
 
 ### Migrated from [disler/pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code)
 
-| Extension           | Shortcuts          | Purpose                                              |
-| ------------------- | ------------------ | ---------------------------------------------------- |
-| **theme-cycler.ts** | `Ctrl+.` / `Ctrl+,` | Cycle themes with picker or command                  |
-| **themeMap.ts**    | —                  | Per-extension theme assignments (utility module)     |
+| Extension           | Shortcuts           | Purpose                                          |
+| ------------------- | ------------------- | ------------------------------------------------ |
+| **theme-cycler.ts** | `Ctrl+.` / `Ctrl+,` | Cycle themes with picker or command              |
+| **themeMap.ts**     | —                   | Per-extension theme assignments (utility module) |
 
 ### Multi-Agent Orchestration Extensions
 
 #### pi-pi.ts
+
 Meta-agent that builds Pi agents using parallel research experts.
 
 **Commands:**
+
 - `/experts` — List available experts and their status
 - `/experts-grid <1-6>` — Set grid column count (default: 6)
 - `/experts-show` — Show the expert grid widget
@@ -163,23 +167,28 @@ Meta-agent that builds Pi agents using parallel research experts.
 **Usage:** "Build me a theme with dark colors" → pi-pi queries experts in parallel, synthesizes, and writes files.
 
 #### subagent-widget.ts
+
 Background subagent spawning with live TUI widgets.
 
 **Commands:**
+
 - `/sub <task>` — Spawn a background subagent
 - `/subcont <id> <prompt>` — Continue an existing subagent's conversation
 - `/subrm <id>` — Remove a subagent widget
 - `/subclear` — Clear all subagent widgets
 
 **Features:**
+
 - Live streaming progress widget
 - Session persistence for multi-turn conversations
 - `/subcont` reuses the same session for context continuity
 
 #### agent-team.ts
+
 Dispatcher-only orchestrator with grid dashboard.
 
 **Commands:**
+
 - `/agents-team` — Switch active team
 - `/agents-list` — List loaded agents and status
 - `/agents-grid <1-6>` — Set grid column count (default: auto-size up to 6)
@@ -191,9 +200,11 @@ Dispatcher-only orchestrator with grid dashboard.
 **Teams:** Defined in `~/.pi/agent/agents/teams.yaml` (plan-build, full, info, frontend, pi-pi)
 
 #### agent-chain.ts
+
 Sequential pipeline orchestrator — each step's output feeds into the next.
 
 **Commands:**
+
 - `/chain` — Switch active chain
 - `/chain-list` — List all available chains
 - `/chain-show` — Show the agent chain footer
@@ -206,12 +217,15 @@ Sequential pipeline orchestrator — each step's output feeds into the next.
 **Built-in chains:** plan-build-review, plan-build, scout-flow, plan-review-plan, full-review
 
 #### coms.ts
+
 Peer-to-peer messaging between Pi agents on the same machine.
 
 **Commands:**
+
 - `/coms` — Main coms command
 
 **Tools:**
+
 - `coms_list` — List peer agents
 - `coms_send` — Send message to peer
 - `coms_get` — Get messages from peer
@@ -255,14 +269,17 @@ just ext-pi-pi
 Theme cycling with keyboard shortcuts and command.
 
 **Shortcuts:**
+
 - `Ctrl+.` — Cycle to next theme
 - `Ctrl+,` — Cycle to previous theme
 
 **Commands:**
+
 - `/theme` — Open theme picker
 - `/theme <name>` — Switch directly (e.g., `/theme synthwave`)
 
 **Features:**
+
 - Status line shows current theme name with 🎨 icon
 - Color swatch widget briefly appears after switching
 - Default theme: `gruvbox-new`
@@ -569,6 +586,7 @@ Reload: `source ~/.zshrc`
 ## Credits
 
 - **[nono](https://nono.sh)** by always-further
+- [just](https://github.com/casey/just) by @casey
 - **[pi-coding-agent](https://github.com/earendil-works/pi-coding-agent)** by @earendil-works
 - **[pi-subagents](https://github.com/nicobailon/pi-subagents)** by nicopreme
 - **[pi-web-access](https://github.com/nicobailon/pi-web-access)** by nicopreme
