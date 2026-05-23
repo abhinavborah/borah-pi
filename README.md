@@ -35,6 +35,10 @@ Built on [pi-subagents](https://pi.dev/packages/pi-subagents) with Matt Pocock s
 | **oracle**          | Advisory - challenges assumptions, no edits                      | fork    |
 | **context-builder** | Strong handoff pass - gathers context + meta-prompt              | fresh   |
 | **delegate**        | Lightweight generic delegate with parent-like behavior           | fork    |
+| **builder**         | Implementation with /tdd and /diagnose skills                   | fork    |
+| **documenter**     | Documentation and README generation                              | fork    |
+| **red-team**        | Security and adversarial testing                                 | fork    |
+| **plan-reviewer**   | Plan critic — reviews and validates implementation plans          | fork    |
 
 ### Core Orchestration Pattern
 
@@ -142,6 +146,109 @@ Custom extensions installed locally in `~/.pi/agent/extensions/`.
 | ------------------- | ------------------ | ---------------------------------------------------- |
 | **theme-cycler.ts** | `Ctrl+.` / `Ctrl+,` | Cycle themes with picker or command                  |
 | **themeMap.ts**    | —                  | Per-extension theme assignments (utility module)     |
+
+### Multi-Agent Orchestration Extensions
+
+#### pi-pi.ts
+Meta-agent that builds Pi agents using parallel research experts.
+
+**Commands:**
+- `/experts` — List available experts and their status
+- `/experts-grid <1-6>` — Set grid column count (default: 6)
+- `/experts-show` — Show the expert grid widget
+- `/experts-hide` — Hide the expert grid widget
+
+**Expert agents:** ext-expert, theme-expert, skill-expert, config-expert, tui-expert, prompt-expert, agent-expert, cli-expert, keybinding-expert
+
+**Usage:** "Build me a theme with dark colors" → pi-pi queries experts in parallel, synthesizes, and writes files.
+
+#### subagent-widget.ts
+Background subagent spawning with live TUI widgets.
+
+**Commands:**
+- `/sub <task>` — Spawn a background subagent
+- `/subcont <id> <prompt>` — Continue an existing subagent's conversation
+- `/subrm <id>` — Remove a subagent widget
+- `/subclear` — Clear all subagent widgets
+
+**Features:**
+- Live streaming progress widget
+- Session persistence for multi-turn conversations
+- `/subcont` reuses the same session for context continuity
+
+#### agent-team.ts
+Dispatcher-only orchestrator with grid dashboard.
+
+**Commands:**
+- `/agents-team` — Switch active team
+- `/agents-list` — List loaded agents and status
+- `/agents-grid <1-6>` — Set grid column count (default: auto-size up to 6)
+- `/agents-show` — Show the agent grid widget
+- `/agents-hide` — Hide the agent grid widget
+
+**Tool:** `dispatch_agent` — Primary agent delegates work to specialists.
+
+**Teams:** Defined in `~/.pi/agent/agents/teams.yaml` (plan-build, full, info, frontend, pi-pi)
+
+#### agent-chain.ts
+Sequential pipeline orchestrator — each step's output feeds into the next.
+
+**Commands:**
+- `/chain` — Switch active chain
+- `/chain-list` — List all available chains
+- `/chain-show` — Show the agent chain footer
+- `/chain-hide` — Hide the agent chain footer
+
+**Tool:** `run_chain` — Execute a multi-step workflow.
+
+**Variables:** `$INPUT` (previous step output), `$ORIGINAL` (original prompt)
+
+**Built-in chains:** plan-build-review, plan-build, scout-flow, plan-review-plan, full-review
+
+#### coms.ts
+Peer-to-peer messaging between Pi agents on the same machine.
+
+**Commands:**
+- `/coms` — Main coms command
+
+**Tools:**
+- `coms_list` — List peer agents
+- `coms_send` — Send message to peer
+- `coms_get` — Get messages from peer
+- `coms_await` — Wait for message from peer
+
+**Transport:** Unix sockets (macOS/Linux) / named pipes (Windows)
+
+**Registry:** `~/.pi/coms/projects/<project>/agents/`
+
+**Usage:** Start two pi instances with `--name receiver --project test`, then send messages between them.
+
+---
+
+### justfile
+
+Task runner for common pi launch configurations. Install: `brew install just`
+
+```bash
+# List all recipes
+just
+
+# Default pi with extensions
+just pi
+
+# Agent team with theme cycling
+just ext-agent-team
+
+# Agent chain with theme cycling
+just ext-agent-chain
+
+# Pi Pi meta-agent
+just ext-pi-pi
+
+# Open in new terminal: just open agent-team theme-cycler
+```
+
+---
 
 #### theme-cycler.ts
 
@@ -474,3 +581,4 @@ Reload: `source ~/.zshrc`
 - **[Context7](https://context7.com)** by Context7
 - **[DeepWiki](https://deepwiki.com)** by DeepWiki
 - **[Playwright](https://playwright.dev)** by Microsoft
+- **[disler/pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code)** — Extension source for theme-cycler, pi-pi, subagent-widget, agent-team, agent-chain, coms
