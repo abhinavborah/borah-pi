@@ -15,7 +15,7 @@ clarify → scout/research → planner → builder → parallel fresh reviewers 
 
 ---
 
-## Subagents (pi-subagents)
+## Subagents
 
 Delegate focused work to child agents via `subagent(...)` or slash commands (`/run`, `/chain`, `/parallel`).
 

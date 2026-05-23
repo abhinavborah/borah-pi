@@ -1,6 +1,6 @@
 # Pi Config
 
-My personal Pi coding agent setup: built on [pi-subagents](https://pi.dev/packages/pi-subagents) with custom agents, Matt Pocock skills, and MCP integrations.
+My personal Pi coding agent setup: custom agents, Matt Pocock skills, and MCP integrations.
 
 ![demo](./demo/demo.png)
 
@@ -23,9 +23,9 @@ My personal Pi coding agent setup: built on [pi-subagents](https://pi.dev/packag
 
 ---
 
-## Custom Agents (pi-subagents)
+## Custom Agents
 
-Built on [pi-subagents](https://pi.dev/packages/pi-subagents), [pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code) with Matt Pocock skills and MCP integrations. Each agent is defined in `~/.pi/agent/agents/` and invoked via `/run`, `/chain`, or `/parallel`.
+Built on [pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code) with Matt Pocock skills and MCP integrations. Each agent is defined in `~/.pi/agent/agents/` and invoked via `/run`, `/chain`, or `/parallel`.
 
 ### Available Agents
 
@@ -568,7 +568,6 @@ Displays tool and MCP call counts in the UI footer. Toggle via `/tool-counter`.
 | Package                | Purpose                                       |
 | ---------------------- | --------------------------------------------- |
 | `npm:pi-rtk-optimizer` | Auto-rewrites bash to compact rtk equivalents |
-| `npm:pi-subagents`     | Async subagent delegation                     |
 | `npm:pi-intercom`      | Direct messaging between pi sessions          |
 | `npm:pi-web-access`    | Code examples, docs, API references           |
 | `npm:pi-mcp-adapter`   | MCP server integration                        |
@@ -692,7 +691,6 @@ brew install rubygem-tk
 pi install npm:pi-rtk-optimizer
 
 # 6. Install subagents and intercom
-pi install npm:pi-subagents
 pi install npm:pi-intercom
 
 # 7. Install Matt Pocock Skills
@@ -749,9 +747,8 @@ Reload: `source ~/.zshrc`
 - **[nono](https://nono.sh)** by always-further
 - [just](https://github.com/casey/just) by @casey
 - **[pi-coding-agent](https://github.com/earendil-works/pi-coding-agent)** by @earendil-works
-- **[pi-subagents](https://github.com/nicobailon/pi-subagents)** by nicopreme
-- **[pi-web-access](https://github.com/nicobailon/pi-web-access)** by nicopreme
 - **[pi-intercom](https://github.com/nicobailon/pi-intercom)** by nicopreme
+- **[pi-web-access](https://github.com/nicobailon/pi-web-access)** by nicopreme
 - **[Matt Pocock Skills](https://github.com/mattpocock/skills)** by @mattpocock
 - **[pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter)** by nicopreme
 - **[pi-rtk-optimizer](https://github.com/MasuRii/pi-rtk-optimizer)** by @MasuRii
