@@ -10,13 +10,15 @@ My personal Pi coding agent setup: built on [pi-subagents](https://pi.dev/packag
 ~/.pi/
 ├── agent/
 │   ├── agents/              # Custom agents (scout, researcher, planner, etc.)
+│   ├── art/                 # UI art for splash.ts extension
 │   ├── extensions/          # UI extensions
 │   ├── skills/              # Matt Pocock skills
-│   ├── intercom/            # Inter-session messaging
+│   ├── themes/              # UI themes
 │   ├── AGENTS.md            # Global orchestration instructions
-│   └── settings.json         # Configuration
+│   └── settings.json        # Configuration
 ├── mcp.json                 # MCP server configurations
-└── README.md
+├── README.md                # docs about this project
+└── justfile                 # execution instructions via just
 ```
 
 ---
