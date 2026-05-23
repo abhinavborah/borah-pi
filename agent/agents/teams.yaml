@@ -1,10 +1,15 @@
 full:
   - scout
+  - oracle
+  - researcher
   - planner
+  - plan-reviewer
+  - context-builder
   - builder
   - reviewer
   - documenter
   - red-team
+  - bowser
 
 plan-build:
   - planner
