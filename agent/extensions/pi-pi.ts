@@ -99,7 +99,7 @@ const BG_RESET = "\x1b[49m";
 
 export default function (pi: ExtensionAPI) {
 	const experts: Map<string, ExpertState> = new Map();
-	let gridCols = 5;
+	let gridCols = 6;
 	let showGrid = true;
 	let widgetCtx: any;
 
@@ -549,7 +549,7 @@ Ask specific questions about what you need to BUILD. Each expert will return doc
 		handler: async (args, _ctx) => {
 			widgetCtx = _ctx;
 			const n = parseInt(args?.trim() || "", 10);
-			if (n >= 1 && n <= 5) {
+			if (n >= 1 && n <= 6) {
 				gridCols = n;
 				_ctx.ui.notify(`Grid set to ${gridCols} columns`, "info");
 				updateWidget();
@@ -639,21 +639,13 @@ Ask specific questions about what you need to BUILD. Each expert will return doc
 				const filled = Math.round(pct / 10);
 				const bar = "#".repeat(filled) + "-".repeat(10 - filled);
 
-				const active = Array.from(experts.values()).filter(e => e.status === "researching").length;
-				const done = Array.from(experts.values()).filter(e => e.status === "done").length;
-
 				const left = theme.fg("dim", ` ${model}`) +
 					theme.fg("muted", " · ") +
 					theme.fg("accent", "Pi Pi");
-				const mid = active > 0
-					? theme.fg("accent", ` ◉ ${active} researching`)
-					: done > 0
-					? theme.fg("success", ` ✓ ${done} done`)
-					: "";
 				const right = theme.fg("dim", `[${bar}] ${Math.round(pct)}% `);
-				const pad = " ".repeat(Math.max(1, width - visibleWidth(left) - visibleWidth(mid) - visibleWidth(right)));
+				const pad = " ".repeat(Math.max(1, width - visibleWidth(left) - visibleWidth(right)));
 
-				return [truncateToWidth(left + mid + pad + right, width)];
+				return [truncateToWidth(left + pad + right, width)];
 			},
 		}));
 	});
