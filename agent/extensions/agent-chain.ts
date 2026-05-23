@@ -21,7 +21,6 @@
  * Usage: pi -e extensions/agent-chain.ts
  */
 
-import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
@@ -743,7 +742,8 @@ ${agentCatalog}
 		pendingReset = true;
 
 		// Wipe chain session files — reset agent context on /new and launch
-		const sessDir = join(_ctx.cwd, ".pi", "agent-sessions");
+		const agentDir = getAgentDir();
+		const sessDir = join(agentDir, "agent-sessions");
 		if (existsSync(sessDir)) {
 			for (const f of readdirSync(sessDir)) {
 				if (f.startsWith("chain-") && f.endsWith(".json")) {

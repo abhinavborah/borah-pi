@@ -149,6 +149,7 @@ export default function (pi: ExtensionAPI) {
 	let contextWindow = 0;
 
 	function loadAgents(cwd: string) {
+		const agentDir = getAgentDir();
 		// Create session storage dir
 		sessionDir = join(agentDir, "agent-sessions");
 		if (!existsSync(sessionDir)) {
@@ -202,7 +203,7 @@ export default function (pi: ExtensionAPI) {
 
 		// Auto-size grid columns based on team size
 		const size = agentStates.size;
-		gridCols = size <= 3 ? size : size === 4 ? 2 : 3;
+		gridCols = size <= 6 ? size : 6;
 	}
 
 	// ── Grid Rendering ───────────────────────────
@@ -707,7 +708,8 @@ ${agentCatalog}`,
 		contextWindow = _ctx.model?.contextWindow || 0;
 
 		// Wipe old agent session files so subagents start fresh
-		const sessDir = join(_ctx.cwd, ".pi", "agent-sessions");
+		const agentDir = getAgentDir();
+		const sessDir = join(agentDir, "agent-sessions");
 		if (existsSync(sessDir)) {
 			for (const f of readdirSync(sessDir)) {
 				if (f.endsWith(".json")) {
