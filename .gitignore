@@ -1,4 +1,5 @@
 agent/auth.json
+agent/.pi/
 agent/extensions/pi-rtk-optimizer/
 agent/extensions/supacode/
 agent/intercom

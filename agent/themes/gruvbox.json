@@ -22,7 +22,13 @@
     "blue":      "#67a6e4",
     "purple":    "#ca74e7",
     "aqua":      "#81e4be",
-    "orange":    "#fd953f"
+    "orange":    "#fd953f",
+    "primary":   "#fb4b37",
+    "secondary": "#322d29",
+    "orangeDark": "#cc7a2e",
+    "dim":       "#fcebc5",
+    "bgSoft":    "#282828",
+    "surfaceDark": "#3c3836"
   },
   "colors": {
     "accent": "orange",
