@@ -15,7 +15,7 @@ export const THEME_MAP: Record<string, string> = {
 	"cross-agent":        "ocean-breeze",     // cross-boundary, connecting
 	"damage-control":     "gruvbox",          // grounded, earthy safety
 	"minimal":            "synthwave",        // synthwave by default now!
-	"pi-pi":              "rose-pine",        // warm creative meta-agent
+	"pi-pi":              "gruvbox",        // warm creative meta-agent
 	"pure-focus":         "everforest",       // calm, distraction-free
 	"purpose-gate":       "tokyo-night",      // intentional, sharp focus
 	"session-replay":     "catppuccin-mocha", // soft, reflective history
