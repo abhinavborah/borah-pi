@@ -12,7 +12,7 @@ My personal Pi coding agent setup: custom agents, Matt Pocock skills, and MCP in
 │   ├── agents/              # Custom agents (scout, researcher, planner, etc.)
 │   ├── art/                 # UI art for splash.ts extension
 │   ├── extensions/          # UI extensions
-│   ├── skills/              # Matt Pocock skills
+│   ├── skills/              # Agent skills
 │   ├── themes/              # UI themes
 │   ├── AGENTS.md            # Global orchestration instructions
 │   ├── mcp.json             # MCP server configurations
@@ -29,36 +29,19 @@ Built on [pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code) with M
 
 ### Available Agents
 
-| Agent               | Purpose                                                          | Context |
-| ------------------- | ---------------------------------------------------------------- | ------- |
-| **scout**           | Fast codebase recon - maps entry points, types, data flow, risks | fresh |
-| **researcher**      | Web/docs research - searches, fetches, synthesizes evidence      | fresh |
-| **planner**         | Turns requirements into implementation plans                     | fork |
-| **builder**         | Implementation with /tdd and /diagnose (defaultReads: context.md, plan.md) | fork |
-| **reviewer**        | Code review - correctness, tests, simplicity (fresh context)     | fresh |
-| **oracle**          | Advisory - challenges assumptions, no edits                      | fork |
-| **context-builder** | Strong handoff pass - gathers context + meta-prompt              | fresh |
-| **delegate**        | Lightweight generic delegate with parent-like behavior           | fork |
-| **documenter**      | Documentation and README generation                              | fork |
-| **red-team**        | Security and adversarial testing                                 | fork |
-| **plan-reviewer**   | Plan critic — reviews and validates implementation plans         | fork |
-
-### Pi Pi Expert Agents
-
-The `pi-pi` meta-agent uses 10 domain experts for parallel research:
-
-| Expert | Specialty |
-|--------|-----------|
-| **pi-orchestrator** | Primary meta-agent that coordinates all experts |
-| **agent-expert** | Agent .md frontmatter, teams.yaml, agent-team orchestration |
-| **cli-expert** | CLI arguments, flags, environment variables |
-| **config-expert** | settings.json, providers, models, keybindings |
-| **ext-expert** | Building extensions, custom tools, commands |
-| **keybinding-expert** | registerShortcut(), modifier combos, terminal compatibility |
-| **prompt-expert** | Prompt template .md format, positional arguments |
-| **skill-expert** | SKILL.md format, frontmatter fields, validation |
-| **theme-expert** | Theme JSON format, all 51 color tokens |
-| **tui-expert** | TUI components, custom rendering, overlays |
+| Agent               | Purpose                                                                    | Context |
+| ------------------- | -------------------------------------------------------------------------- | ------- |
+| **scout**           | Fast codebase recon - maps entry points, types, data flow, risks           | fresh   |
+| **researcher**      | Web/docs research - searches, fetches, synthesizes evidence                | fresh   |
+| **planner**         | Turns requirements into implementation plans                               | fork    |
+| **builder**         | Implementation with /tdd and /diagnose (defaultReads: context.md, plan.md) | fork    |
+| **reviewer**        | Code review - correctness, tests, simplicity (fresh context)               | fresh   |
+| **oracle**          | Advisory - challenges assumptions, no edits                                | fork    |
+| **context-builder** | Strong handoff pass - gathers context + meta-prompt                        | fresh   |
+| **delegate**        | Lightweight generic delegate with parent-like behavior                     | fork    |
+| **documenter**      | Documentation and README generation                                        | fork    |
+| **red-team**        | Security and adversarial testing                                           | fork    |
+| **plan-reviewer**   | Plan critic — reviews and validates implementation plans                   | fork    |
 
 ### Core Orchestration Pattern
 
@@ -85,6 +68,7 @@ subagent({ agent: "scout", task: "Map the auth flow" });
 Autonomous web researcher with access to web scraping and documentation tools.
 
 **Tools:**
+
 - `firecrawl_scrape`, `firecrawl_map`, `firecrawl_search`, `firecrawl_crawl` (via pi-web-access)
 - `web_search`, `fetch_content`, `get_search_content`, `code_search` (via pi-web-access)
 - `context7_resolve_library_id`, `context7_query_docs` (Context7 extension)
@@ -105,6 +89,7 @@ Creates implementation plans from context and requirements.
 **Tools:** `read`, `grep`, `find`, `ls`, `write`, `context7_*`, `deepwiki_*`, `firecrawl_scrape`, `firecrawl_search`, `firecrawl_crawl`
 
 **Skills (mandatory):**
+
 - `/grill-with-docs` to challenge plan against domain model
 - `/to-issues` to break plan into independently-grabbable tickets
 
@@ -125,6 +110,7 @@ Implementation agent with mandatory Matt Pocock skill usage.
 **Tools:** `read`, `write`, `edit`, `bash`, `grep`, `find`, `ls`, `contact_supervisor`, `context7_query_docs`, `context7_search_docs`
 
 **Skills (mandatory):**
+
 - `/tdd` for new features (red-green-refactor loop)
 - `/diagnose` for bug fixes (reproduce → minimize → hypothesize → fix → test)
 
@@ -257,21 +243,6 @@ Custom extensions installed locally in `~/.pi/agent/extensions/`.
 | **themeMap.ts**     | —                   | Per-extension theme assignments (utility module) |
 
 ### Multi-Agent Orchestration Extensions
-
-#### pi-pi.ts
-
-Meta-agent that builds Pi agents using parallel research experts.
-
-**Commands:**
-
-- `/experts` — List available experts and their status
-- `/experts-grid <1-6>` — Set grid column count (default: 6)
-- `/experts-show` — Show the expert grid widget
-- `/experts-hide` — Hide the expert grid widget
-
-**Expert agents:** ext-expert, theme-expert, skill-expert, config-expert, tui-expert, prompt-expert, agent-expert, cli-expert, keybinding-expert
-
-**Usage:** "Build me a theme with dark colors" → pi-pi queries experts in parallel, synthesizes, and writes files.
 
 #### subagent-widget.ts
 
@@ -439,7 +410,6 @@ GitHub repository documentation and AI Q&A. Interactive command: `/deepwiki`
 - `deepwiki_read_wiki_contents` - View documentation
 - `deepwiki_ask_question` - Ask questions about a repo
 
-
 **Used by:** planner, plan-reviewer
 
 ### Playwright MCP
@@ -500,27 +470,27 @@ Then run `/setup-matt-pocock-skills` to configure per-repo settings.
 
 ### Engineering Skills
 
-| Skill                            | When to use                                                             | Best with           |
-| -------------------------------- | ----------------------------------------------------------------------- | ------------------- |
-| `/diagnose`                      | Hard bugs/performance - reproduce → minimize → hypothesize → fix → test | `oracle`, `builder`  |
-| `/grill-with-docs`               | Grilling session + domain model alignment + ADRs                        | `planner`, `oracle` |
-| `/tdd`                           | Test-driven development - red-green-refactor loop                       | `builder`          |
-| `/triage`                        | Incoming bugs/features - triage through a state machine                 | `researcher`        |
-| `/zoom-out`                      | High-level code context in system terms                                 | `scout`             |
-| `/extract`                       | Identify reusable components, design tokens, patterns                   | `scout`             |
-| `/improve-codebase-architecture` | Refactoring opportunities - consolidation, decoupling, testability      | `plan-reviewer`     |
+| Skill                            | When to use                                                             | Best with                 |
+| -------------------------------- | ----------------------------------------------------------------------- | ------------------------- |
+| `/diagnose`                      | Hard bugs/performance - reproduce → minimize → hypothesize → fix → test | `oracle`, `builder`       |
+| `/grill-with-docs`               | Grilling session + domain model alignment + ADRs                        | `planner`, `oracle`       |
+| `/tdd`                           | Test-driven development - red-green-refactor loop                       | `builder`                 |
+| `/triage`                        | Incoming bugs/features - triage through a state machine                 | `researcher`              |
+| `/zoom-out`                      | High-level code context in system terms                                 | `scout`                   |
+| `/extract`                       | Identify reusable components, design tokens, patterns                   | `scout`                   |
+| `/improve-codebase-architecture` | Refactoring opportunities - consolidation, decoupling, testability      | `plan-reviewer`           |
 | `/distill`                       | Strip to essence - distill complex information into essence             | `oracle`, `plan-reviewer` |
-| `/audit`                         | Comprehensive quality review - accessibility, performance, security      | `reviewer`, `red-team` |
-| `/polish`                        | Final quality pass - alignment, spacing, consistency, detail             | `reviewer`         |
-| `/optimize`                      | Performance improvements - loading speed, rendering, animations          | `reviewer`         |
-| `/onboard`                       | Design onboarding flows and first-time user experiences                  | `documenter`       |
-| `/adapt`                         | Adapt designs across different screen sizes and contexts                | `documenter`       |
-| `/humanizer`                     | Remove AI writing patterns and make text natural                        | `documenter`       |
-| `/bolder`                        | Amplify safe designs to make them more visually interesting              | `documenter`       |
-| `/harden`                        | Improve interface resilience - error handling, i18n, edge cases          | `red-team`         |
-| `/prototype`                     | Throwaway prototype for design exploration                              | before committing   |
-| `/to-issues`                     | Break plan into independently-grabbable issues                          | `planner`           |
-| `/to-prd`                        | Convert feature request into PRD                                        | after `/grill-me`   |
+| `/audit`                         | Comprehensive quality review - accessibility, performance, security     | `reviewer`, `red-team`    |
+| `/polish`                        | Final quality pass - alignment, spacing, consistency, detail            | `reviewer`                |
+| `/optimize`                      | Performance improvements - loading speed, rendering, animations         | `reviewer`                |
+| `/onboard`                       | Design onboarding flows and first-time user experiences                 | `documenter`              |
+| `/adapt`                         | Adapt designs across different screen sizes and contexts                | `documenter`              |
+| `/humanizer`                     | Remove AI writing patterns and make text natural                        | `documenter`              |
+| `/bolder`                        | Amplify safe designs to make them more visually interesting             | `documenter`              |
+| `/harden`                        | Improve interface resilience - error handling, i18n, edge cases         | `red-team`                |
+| `/prototype`                     | Throwaway prototype for design exploration                              | before committing         |
+| `/to-issues`                     | Break plan into independently-grabbable issues                          | `planner`                 |
+| `/to-prd`                        | Convert feature request into PRD                                        | after `/grill-me`         |
 
 ### Productivity Skills
 
@@ -730,7 +700,7 @@ Reload: `source ~/.zshrc`
 | Need external evidence      | `/run researcher "Research X"`                |
 | Hard decision before acting | `/run oracle "Advise on X"`                   |
 | Complex work ahead          | `/grill-with-docs` first, then `/run planner` |
-| Implement feature           | `/run builder` (after plan approved)           |
+| Implement feature           | `/run builder` (after plan approved)          |
 | After implementation        | Parallel `/run reviewer` (fresh context)      |
 | Bug investigation           | `/diagnose` or `/run oracle`                  |
 | New feature idea            | `/grill-me` → `/to-prd`                       |
