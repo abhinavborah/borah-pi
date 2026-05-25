@@ -37,13 +37,16 @@ plan-review-plan:
       prompt: "Revise and improve your implementation plan based on this critique. Address every issue raised and incorporate the recommendations:\n\nOriginal request: $ORIGINAL\n\nCritique:\n$INPUT"
 
 full-review:
-  description: "End-to-end pipeline — scout, plan, build, and review"
+  description: "End-to-end pipeline — scout, researcher, plan, build, and review"
   steps:
     - agent: scout
       prompt: "Explore the codebase and identify: $INPUT"
     - agent: planner
       prompt: "Based on this analysis, create a plan:\n\n$INPUT"
+    - agent: researcher
+      prompt: "Search the internet to validate this plan and gather latest context:\n\n$INPUT"
     - agent: builder
       prompt: "Implement this plan:\n\n$INPUT"
     - agent: reviewer
       prompt: "Review this implementation:\n\n$INPUT"
+
