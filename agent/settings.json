@@ -5,12 +5,13 @@
   "enableInstallTelemetry": false,
   "theme": "gruvbox",
   "packages": [
+    "extensions/theme-cycler.ts",
     "npm:pi-rtk-optimizer",
     "npm:pi-mcp-adapter",
     "npm:pi-web-access",
     "extensions/deepwiki.ts",
     "extensions/context7.ts",
-    "extensions/theme-cycler.ts"
+    "extensions/splash.ts"
   ],
   "defaultThinkingLevel": "medium"
 }

@@ -1,12 +1,16 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { basename } from "path";
 import { fileURLToPath } from "url";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 
 // ── Theme assignments ──────────────────────────────────────────────────────
 //
 // Key   = extension filename without extension (matches extensions/<key>.ts)
 // Value = theme name from .pi/themes/<value>.json
 //
+// NOTE: "theme-cycler" uses the theme from settings.json instead (see readSettingsTheme)
+
 export const THEME_MAP: Record<string, string> = {
 	"agent-chain":        "midnight-ocean",   // deep sequential pipeline
 	"agent-team":         "dracula",          // rich orchestration palette
@@ -35,10 +39,32 @@ function extensionName(fileUrl: string): string {
 	return basename(filePath).replace(/\.[^.]+$/, "");
 }
 
+// ── Settings theme reader ───────────────────────────────────────────────
+
+/**
+ * Read the `theme` value from ~/.pi/agent/settings.json.
+ * Returns null if the file doesn't exist or theme is not set.
+ */
+function readSettingsTheme(): string | null {
+	const settingsPath = join(process.env.HOME ?? "", ".pi", "agent", "settings.json");
+	try {
+		if (existsSync(settingsPath)) {
+			const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+			if (settings.theme && typeof settings.theme === "string") {
+				return settings.theme;
+			}
+		}
+	} catch {
+		// ignore parse errors
+	}
+	return null;
+}
+
 // ── Theme ──────────────────────────────────────────────────────────────────
 
 /**
  * Apply the mapped theme for an extension on session boot.
+ * For "theme-cycler", reads the theme from settings.json instead of THEME_MAP.
  *
  * @param fileUrl   Pass `import.meta.url` from the calling extension file.
  * @param ctx       The ExtensionContext from the session_start handler.
@@ -48,30 +74,47 @@ export function applyExtensionTheme(fileUrl: string, ctx: ExtensionContext): boo
 	if (!ctx.hasUI) return false;
 
 	const name = extensionName(fileUrl);
-	
+
 	// If there are multiple extensions stacked in 'ipi', they each fire session_start
 	// and try to apply their own mapped theme. The LAST one to fire wins.
 	// Since system-select is last in the ipi alias array, it was setting 'catppuccin-mocha'.
-	
+
 	// We want to skip theme application for all secondary extensions if they are stacked,
 	// so the primary extension (first in the array) dictates the theme.
 	const primaryExt = primaryExtensionName();
-	if (primaryExt && primaryExt !== name) {
-		return true; // Pretend we succeeded, but don't overwrite the primary theme
+	// For theme-cycler, always apply the user's explicit theme choice from settings.json
+	// regardless of load order — user preference takes precedence over primary check
+	if (primaryExt !== null) {
+		// There IS a primary extension (pi -e ... was used)
+		// Skip if not the primary and not theme-cycler
+		if (primaryExt !== name && name !== "theme-cycler") {
+			return true; // Pretend we succeeded, but don't overwrite the primary theme
+		}
+	} else {
+		// No primary extension (plain `pi` with no -e flags)
+		// Only theme-cycler should apply its theme (from settings.json)
+		// All other extensions should skip
+		if (name !== "theme-cycler") {
+			return true; // Skip, pretend success
+		}
 	}
 
-	let themeName = THEME_MAP[name];
-	
-	if (!themeName) {
-		themeName = "synthwave";
+	let themeName: string;
+
+	// For theme-cycler, prefer the theme from settings.json (allows user to set their preferred theme)
+	if (name === "theme-cycler") {
+		const settingsTheme = readSettingsTheme();
+		themeName = settingsTheme ?? THEME_MAP[name] ?? "synthwave";
+	} else {
+		themeName = THEME_MAP[name] ?? "synthwave";
 	}
 
 	const result = ctx.ui.setTheme(themeName);
-	
+
 	if (!result.success && themeName !== "synthwave") {
 		return ctx.ui.setTheme("synthwave").success;
 	}
-	
+
 	return result.success;
 }
 // ── Title ──────────────────────────────────────────────────────────────────
