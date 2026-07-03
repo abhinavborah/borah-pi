@@ -265,14 +265,24 @@ export default function composedFooter(pi: ExtensionAPI) {
 					const tokenSeg = ansi(C.model, `↑${fmt(input)} ↓${fmt(output)} $${cost.toFixed(3)}`);
 
 					// ---- Assemble line 1 ----
+					// Layout: [badges] on the left, [cwd | branch | model | ctx% | tokens] right-aligned.
 					const sep = ansi(C.sep, " | ");
-					const parts: string[] = [];
-					for (const b of badges) parts.push(b);
-					parts.push(cwdSeg + branchSeg);
-					if (modelSeg) parts.push(modelSeg);
-					parts.push(ctxSeg);
-					parts.push(tokenSeg);
-					const line1 = truncateToWidth(parts.join(sep), width);
+					const leftStr = badges.length > 0 ? badges.join(sep) : "";
+					const rightParts: string[] = [cwdSeg + branchSeg];
+					if (modelSeg) rightParts.push(modelSeg);
+					rightParts.push(ctxSeg);
+					rightParts.push(tokenSeg);
+					const rightStr = rightParts.join(sep);
+
+					// Pad between left and right to push the status to the right edge.
+					const leftW = visibleWidth(leftStr);
+					const rightW = visibleWidth(rightStr);
+					const sepW = visibleWidth(sep);
+					const total = leftStr && rightStr ? leftW + sepW + rightW : Math.max(leftW, rightW);
+					const pad = total < width ? " ".repeat(width - total) : "";
+					const line1 = leftStr && rightStr
+						? truncateToWidth(leftStr + pad + sep + rightStr, width)
+						: truncateToWidth((leftStr || rightStr) + " ".repeat(Math.max(0, width - Math.max(leftW, rightW))), width);
 
 					// ---- Line 2: tool stats (only if any tool has been called) ----
 					if (toolStats.totalInvocations === 0) return [line1];
