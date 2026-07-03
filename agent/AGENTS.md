@@ -36,6 +36,9 @@ If the user asks you to do web research, fetch a URL, or use an MCP tool, you MU
 
 ---
 
+## Persona resolution
+`agent/agents/<name>.md` (local) wins over `<name>.md` shipped inside any `git:` or `npm:` package listed in `settings.json`. Bundle-only names fall through to the bundled version. When both exist and conflict, the local file's tools, thinking, and body win; the bundle's metadata (description, cli) is ignored. Rename local files to avoid name collision (e.g. `pi-scout.md`) when you want the bundle to win instead.
+
 ## Anti-Patterns to Avoid
 
 1. **Don't chain reviewers** — run parallel fresh-context reviewers, then synthesize
