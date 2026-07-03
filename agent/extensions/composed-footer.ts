@@ -2,19 +2,20 @@
  * Composed Footer Extension
  *
  * Replaces pi's default footer with a Claude-style statusline:
- * [plugin badges] | cwd | git branch | model | ctx% | token totals
+ * [plugin badges] [padded right] cwd | git branch | model | ctx% | token totals
  *
  * Optionally renders a second line with per-tool invocation counts
  * (folded from the dormant tool-counter-footer.ts).
  *
- * Plugin badges are pulled via footerData.getExtensionStatuses() from any
- * extension that calls ctx.ui.setStatus(name, text) — currently:
- *   - caveman      (pi-caveman)
- *   - theme        (theme-cycler)
- *   - ponytail     (ponytail)
- *   - subagents    (pi-interactive-subagents, when active)
- *   - om           (pi-observational-memory)
- *   - rtk          (pi-rtk-optimizer)
+ * Plugin badges are pulled via footerData.getExtensionStatuses() and projected
+ * through a fixed BADGE_ORDER. Currently rendered (in order):
+ *   - agent-id   (self-registered in session_start)
+ *   - theme      (theme-cycler)
+ *   - mcp        (self-registered in session_start)
+ *   - rtk        (pi-rtk-optimizer)
+ *   - ponytail   (ponytail)
+ *   - caveman    (pi-caveman)
+ *   - om         (pi-observational-memory)
  *
  * Color palette mirrors ~/.claude/statusline.sh (p10k-inspired):
  *   cwd=31  branch=76  model=244  sep=238  ctx high=76  ctx mid=178  ctx low=196
@@ -62,8 +63,8 @@ interface ToolStats {
 	mcpServers: Set<string>;
 }
 
-const BUILTIN_TOOLS = new Set(["bash", "read", "write", "edit", "grep", "find", "ls"]);
-const COMMON_TOOLS = ["bash", "read", "write", "edit", "grep", "find", "ls"];
+const COMMON_TOOLS = ["bash", "read", "write", "edit", "grep", "find", "ls"] as const;
+const BUILTIN_TOOL_SET: ReadonlySet<string> = new Set(COMMON_TOOLS);
 const SKIP_FIRST_PARTS = new Set(["offset", "limit", "path", "command", "pattern", "options"]);
 
 function detectMcpToolNames(allTools: Array<{ name: string; sourceInfo?: { source: string } }>): Set<string> {
@@ -77,7 +78,7 @@ function detectMcpToolNames(allTools: Array<{ name: string; sourceInfo?: { sourc
 		// Heuristic: server_tool pattern where first part isn't a builtin-tool option
 		if (
 			tool.name.includes("_") &&
-			!BUILTIN_TOOLS.has(tool.name) &&
+			!BUILTIN_TOOL_SET.has(tool.name) &&
 			!tool.name.includes("__")
 		) {
 			const firstPart = tool.name.split("_")[0];
@@ -183,12 +184,6 @@ function colorForCtxPct(remaining: number): number {
 // Extension
 // ---------------------------------------------------------------------------
 
-// `ctx` is typed as `any` to match the pattern used in tool-counter-footer.ts
-// and the official custom-footer example — `on()` overloads don't return a
-// usable `ExtensionContext` for our purposes, and the `setFooter` factory
-// receives its own typed args anyway.
-type Ctx = any;
-
 export default function composedFooter(pi: ExtensionAPI) {
 	let enabled = true;
 	let worktreeInfo: WorktreeInfo = { inWorktree: false, branch: null };
@@ -197,21 +192,21 @@ export default function composedFooter(pi: ExtensionAPI) {
 		worktreeInfo = await detectWorktree(cwd);
 	}
 
-	pi.on("session_start", async (_event, ctx: Ctx) => {
+	pi.on("session_start", async (_event, ctx) => {
 		await refreshWorktree(ctx.cwd);
 
 		// Register our own status keys so they appear in the badge bar.
 		// agent-id: short session UUID (8 hex chars). mcp: count of MCP servers
 		// registered on this session. Both are static for the session lifetime
 		// (MCP server set is loaded at boot, not mutated mid-session).
-		if (ctx?.ui?.setStatus) {
+		if (ctx.ui?.setStatus) {
 			const sessionId = ctx.sessionManager?.getSessionId?.() ?? "";
 			const shortId = sessionId ? sessionId.slice(0, 8) : "no-id";
 			ctx.ui.setStatus("agent-id", `agent:${shortId}`);
 
 			const mcpServers = new Set<string>();
 			for (const tool of pi.getAllTools()) {
-				const name = (tool as { name: string }).name;
+				const name = tool.name;
 				if (!name.includes("__")) continue;
 				const parts = name.split("__");
 				const server = parts[0] === "mcp" ? parts[1] : parts[0];
@@ -226,8 +221,8 @@ export default function composedFooter(pi: ExtensionAPI) {
 		if (enabled) enableFooter(pi, ctx);
 	});
 
-	function enableFooter(_pi: ExtensionAPI, _ctx: Ctx) {
-		_ctx.ui.setFooter((tui: any, _theme: any, footerData: any) => {
+	function enableFooter(_pi: ExtensionAPI, _ctx: import("@earendil-works/pi-coding-agent").ExtensionContext) {
+		_ctx.ui.setFooter((tui, _theme, footerData) => {
 			const unsubBranch = footerData.onBranchChange(() => {
 				refreshWorktree(_ctx.cwd).then(() => tui.requestRender());
 			});
@@ -260,7 +255,7 @@ export default function composedFooter(pi: ExtensionAPI) {
 					// Keys here must match the `name` argument each extension passes to setStatus().
 					// agent-id and mcp are registered by this extension itself in session_start.
 					const BADGE_ORDER = ["agent-id", "theme", "mcp", "rtk", "ponytail", "caveman", "om"];
-					const statuses = footerData.getExtensionStatuses() as Map<string, string>;
+					const statuses = footerData.getExtensionStatuses();
 					const badges: string[] = [];
 					for (const key of BADGE_ORDER) {
 						const text = statuses.get(key);
@@ -272,7 +267,7 @@ export default function composedFooter(pi: ExtensionAPI) {
 					const cwdSeg = ansi(C.cwd, cwdStr);
 
 					// ---- Segment: git branch (worktree-aware coloring) ----
-					const branch = footerData.getGitBranch() as string | null;
+					const branch = footerData.getGitBranch();
 					let branchSeg = "";
 					if (branch) {
 						if (worktreeInfo.inWorktree) {
@@ -283,11 +278,11 @@ export default function composedFooter(pi: ExtensionAPI) {
 					}
 
 					// ---- Segment: model ----
-					const modelId = _ctx.model?.id as string | undefined;
+					const modelId = _ctx.model?.id;
 					const modelSeg = modelId ? ansi(C.model, modelId) : "";
 
 					// ---- Segment: ctx% (latest turn's input vs context window) ----
-					const contextWindow = (_ctx.model?.contextWindow as number | undefined) ?? 200000;
+					const contextWindow = _ctx.model?.contextWindow ?? 200000;
 					const remaining = contextWindow > 0
 						? Math.max(0, 100 - Math.min(100, (lastInput / contextWindow) * 100))
 						: 100;
