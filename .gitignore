@@ -10,3 +10,16 @@ agent/*.jsonl
 agent/*.bak
 graphify-out/
 .graphify*
+
+# === Runtime state (do not track) ===
+# Git-installed package cache
+agent/git/
+# npm-installed package cache
+agent/npm/
+# Pi session state
+agent/agent-sessions/
+agent/sessions/
+# Coms socket directory
+coms/
+# Research scratchpads
+agent/research-pi-extensions.md
