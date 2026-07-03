@@ -16,12 +16,19 @@
  *   - ponytail   (ponytail)
  *   - caveman    (pi-caveman)
  *   - om         (pi-observational-memory)
+ *   - team       (self-registered in session_start, toggleable via /team)
  *
  * Color palette mirrors ~/.claude/statusline.sh (p10k-inspired):
  *   cwd=31  branch=76  model=244  sep=238  ctx high=76  ctx mid=178  ctx low=196
  *   worktree=178 (yellow)  tools line=244 (muted)  tool totals=31 (accent)
  *
  * Toggle: /composed-footer
+ *
+ * Team config (subagent spawn policy):
+ *   ~/.pi/agent/team.json  { enabled: boolean }  (default true; gitignored)
+ *   /team [on|off]         Toggle from inside pi (no arg shows current state)
+ *   When enabled=false, all subagent() calls are blocked; a system-prompt
+ *   rule is injected on every turn to enforce it.
  */
 
 import type { AssistantMessage, ToolCall } from "@earendil-works/pi-ai";
@@ -29,9 +36,50 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
+import { join } from "node:path";
 
 const execAsync = promisify(exec);
+
+// ---------------------------------------------------------------------------
+// Team config: controls subagent spawning (off blocks all subagent calls)
+// ---------------------------------------------------------------------------
+
+interface TeamConfig {
+	/** false => block all subagent() calls and inject a system-prompt warning. */
+	enabled: boolean;
+}
+
+const TEAM_CONFIG_PATH = join(homedir(), ".pi", "agent", "team.json");
+const DEFAULT_TEAM_CONFIG: TeamConfig = { enabled: true };
+let teamConfig: TeamConfig = DEFAULT_TEAM_CONFIG;
+let saveTeamQueue: Promise<void> = Promise.resolve();
+
+async function loadTeamConfig(): Promise<TeamConfig> {
+	try {
+		const raw = await readFile(TEAM_CONFIG_PATH, "utf8");
+		const parsed = JSON.parse(raw);
+		return {
+			enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : DEFAULT_TEAM_CONFIG.enabled,
+		};
+	} catch {
+		return { ...DEFAULT_TEAM_CONFIG };
+	}
+}
+
+async function saveTeamConfig(config: TeamConfig): Promise<void> {
+	const snapshot = JSON.stringify(config, null, 2) + "\n";
+	saveTeamQueue = saveTeamQueue.then(async () => {
+		await mkdir(join(homedir(), ".pi", "agent"), { recursive: true });
+		await writeFile(TEAM_CONFIG_PATH, snapshot, "utf8");
+	});
+	return saveTeamQueue;
+}
+
+function teamBadge(enabled: boolean): string {
+	return enabled ? "🤖 team:on" : "🤖 team:off";
+}
 
 // p10k color palette (matches ~/.claude/statusline.sh)
 const C = {
@@ -197,8 +245,11 @@ export default function composedFooter(pi: ExtensionAPI) {
 
 		// Register our own status keys so they appear in the badge bar.
 		// agent-id: short session UUID (8 hex chars). mcp: count of MCP servers
-		// registered on this session. Both are static for the session lifetime
-		// (MCP server set is loaded at boot, not mutated mid-session).
+		// registered on this session. team: subagent spawn policy from
+		// ~/.pi/agent/team.json. All three are static for the session lifetime
+		// (MCP server set is loaded at boot; team config is loaded once here
+		// and re-read on every /team toggle).
+		teamConfig = await loadTeamConfig();
 		if (ctx.ui?.setStatus) {
 			const sessionId = ctx.sessionManager?.getSessionId?.() ?? "";
 			const shortId = sessionId ? sessionId.slice(0, 8) : "no-id";
@@ -216,9 +267,22 @@ export default function composedFooter(pi: ExtensionAPI) {
 				"mcp",
 				mcpServers.size > 0 ? `mcp:${mcpServers.size}` : "mcp:0",
 			);
+
+			ctx.ui.setStatus("team", teamBadge(teamConfig.enabled));
 		}
 
 		if (enabled) enableFooter(pi, ctx);
+	});
+
+	// Inject a system-prompt rule that BLOCKS subagent() calls when team:off.
+	// The user picked scope (a): off blocks ALL subagent spawns, including
+	// explicit subagent() calls from the user. This is the enforcement half
+	// of the toggle: the badge in the footer is the visibility half.
+	pi.on("before_agent_start", async (event) => {
+		if (teamConfig.enabled) return;
+		return {
+			systemPrompt: `${event.systemPrompt}\n\nTEAM MODE: off. Do NOT call subagent(). All work runs in this session. User has disabled subagent spawning.`,
+		};
 	});
 
 	function enableFooter(_pi: ExtensionAPI, _ctx: import("@earendil-works/pi-coding-agent").ExtensionContext) {
@@ -254,7 +318,7 @@ export default function composedFooter(pi: ExtensionAPI) {
 					// We project through a fixed ordering so the badge bar is predictable.
 					// Keys here must match the `name` argument each extension passes to setStatus().
 					// agent-id and mcp are registered by this extension itself in session_start.
-					const BADGE_ORDER = ["agent-id", "theme", "mcp", "rtk", "ponytail", "caveman", "om"];
+					const BADGE_ORDER = ["agent-id", "theme", "mcp", "rtk", "ponytail", "caveman", "om", "team"];
 					const statuses = footerData.getExtensionStatuses();
 					const badges: string[] = [];
 					for (const key of BADGE_ORDER) {
@@ -348,6 +412,28 @@ export default function composedFooter(pi: ExtensionAPI) {
 				enableFooter(pi, ctx);
 				ctx.ui.notify("Composed footer enabled", "info");
 			}
+		},
+	});
+
+	// /team [on|off]: toggle subagent spawn policy, persisted to
+	// ~/.pi/agent/team.json. No arg reports current state.
+	pi.registerCommand("team", {
+		description: "Toggle team mode (subagent spawn policy). /team [on|off]",
+		handler: async (args, ctx) => {
+			const arg = args.trim().toLowerCase();
+			if (arg === "" || arg === "status" || arg === "state") {
+				ctx.ui.notify(`team: ${teamConfig.enabled ? "on" : "off"}`, "info");
+				return;
+			}
+			if (arg !== "on" && arg !== "off") {
+				ctx.ui.notify("Usage: /team [on|off]", "warning");
+				return;
+			}
+			const next: TeamConfig = { enabled: arg === "on" };
+			await saveTeamConfig(next);
+			teamConfig = next;
+			ctx.ui.setStatus("team", teamBadge(next.enabled));
+			ctx.ui.notify(`team: ${next.enabled ? "on" : "off"} (saved to ~/.pi/agent/team.json)`, "info");
 		},
 	});
 }
