@@ -29,7 +29,7 @@ If the user asks you to spawn subagents, orchestrate parallel work, chain tasks,
 If the user asks you to run a productivity or engineering skill (e.g. `/grill-me`, `/tdd`, `/diagnose`, `/improve-codebase-architecture`), you MUST first read `~/.pi/agent/docs/skills.md`.
 
 ## Inter-session coordination
-If the user asks you to coordinate with another pi session via `intercom()`, you MUST first read `~/.pi/agent/docs/intercom.md`.
+If the user asks you to coordinate with another pi session via `intercom()`, you MUST first read `~/.pi/agent/docs/swarm.md`.
 
 ## Web research and MCP tools
 If the user asks you to do web research, fetch a URL, or use an MCP tool, you MUST first read `~/.pi/agent/docs/mcp.md`.
