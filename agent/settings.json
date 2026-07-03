@@ -1,9 +1,9 @@
 {
-  "lastChangelogVersion": "0.75.5",
+  "lastChangelogVersion": "0.80.3",
   "defaultProvider": "opencode-go",
-  "defaultModel": "minimax-m2.7",
+  "defaultModel": "minimax-m3",
   "enableInstallTelemetry": false,
-  "theme": "gruvbox",
+  "theme": "gruvbox-new",
   "packages": [
     "extensions/theme-cycler.ts",
     "npm:pi-rtk-optimizer",
@@ -11,7 +11,10 @@
     "npm:pi-web-access",
     "extensions/deepwiki.ts",
     "extensions/context7.ts",
-    "extensions/splash.ts"
+    "extensions/splash.ts",
+    "git:github.com/DietrichGebert/ponytail",
+    "git:github.com/HazAT/pi-interactive-subagents",
+    "npm:pi-observational-memory"
   ],
-  "defaultThinkingLevel": "medium"
+  "defaultThinkingLevel": "high"
 }
