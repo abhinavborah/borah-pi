@@ -161,7 +161,7 @@ Auto-clarity: drops caveman for security warnings, irreversible action confirmat
 Replaces pi's default footer with a Claude-style single-line statusline:
 
 ```
-[agent-id] [theme] [mcp] [rtk] [ponytail] [caveman] [om]   ...padded...   <cwd> | <branch> | <model> | <ctx%> | <tokens>
+[agent-id] [theme] [mcp] [rtk] [ponytail] [caveman] [om] [team]   ...padded...   <cwd> | <branch> | <model> | <ctx%> | <tokens>
 ```
 
 Optional second line: per-tool invocation counts and `mcp:N(servers)` when any tool was called.
@@ -177,13 +177,27 @@ Optional second line: per-tool invocation counts and `mcp:N(servers)` when any t
 | ponytail | ponytail | current level |
 | caveman | pi-caveman | current level + animated campfire on ultra |
 | om | pi-observational-memory | state badge |
+| team | self-registered | `team:on` or `team:off` from `~/.pi/agent/team.json` (see /team command) |
 | cwd | self | abbreviated home (p10k blue 31) |
 | branch | self + footerData | git branch (green 76), with tree marker prefix (yellow 178) when cwd is in a non-first block of `git worktree list --porcelain` |
 | model | self | model id (dim 244) |
 | ctx% | self | `100 - latest AssistantMessage.usage.input / ctx.model.contextWindow * 100`; green >= 40, yellow 20-40, red < 20 |
 | tokens | self | cumulative `^input voutput $cost` for current branch |
 
-Worktree marker cached, invalidated on `footerData.onBranchChange`. Toggle: `/composed-footer`.
+Worktree marker cached, invalidated on `footerData.onBranchChange`. Toggles: `/composed-footer`, `/team [on|off]`.
+
+### Team mode (subagent spawn policy)
+
+The `team` badge shows whether subagent spawning is allowed. State is persisted in `~/.pi/agent/team.json` (gitignored via `agent/*.json`).
+
+| Command | Effect |
+|---|---|
+| `/team` | report current state |
+| `/team on` | enable subagent spawning; writes `{ "enabled": true }` to `team.json` |
+| `/team off` | disable subagent spawning; writes `{ "enabled": false }` to `team.json` |
+| `/team foo` | show usage warning |
+
+Default: `on` (file missing or malformed). When `off`, a system-prompt rule is injected on every turn that blocks all `subagent()` calls, including explicit user spawns. The badge update is the visibility half; the system-prompt is the enforcement half.
 
 ## Native Extensions
 
@@ -193,7 +207,7 @@ Worktree marker cached, invalidated on `footerData.onBranchChange`. Toggle: `/co
 | `splash.ts` | ASCII art splash | auto on session start, dismisses on first user message |
 | `context7.ts` | Library docs | `context7_resolve_library_id`, `context7_query_docs`, `/context7` |
 | `deepwiki.ts` | GitHub repo docs + Q&A | `deepwiki_read_wiki_structure`, `deepwiki_read_wiki_contents`, `deepwiki_ask_question`, `/deepwiki` |
-| `composed-footer.ts` | Statusline | `/composed-footer` |
+| `composed-footer.ts` | Statusline | `/composed-footer`, `/team [on|off]` |
 
 ## MCP Servers
 
@@ -356,6 +370,7 @@ export PI_SUBAGENT_MUX=tmux
 | Ultra-compact comms | /caveman (already on ultra) |
 | Lazy/lean output | ponytail (already on ultra) |
 | Toggle status line | /composed-footer |
+| Toggle subagent spawning | /team [on\|off] (persists to `~/.pi/agent/team.json`) |
 | Parallel agents in isolation | `wt switch -x pi -c <branch> -- '<task>'` |
 
 ## Credits
