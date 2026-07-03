@@ -199,6 +199,30 @@ export default function composedFooter(pi: ExtensionAPI) {
 
 	pi.on("session_start", async (_event, ctx: Ctx) => {
 		await refreshWorktree(ctx.cwd);
+
+		// Register our own status keys so they appear in the badge bar.
+		// agent-id: short session UUID (8 hex chars). mcp: count of MCP servers
+		// registered on this session. Both are static for the session lifetime
+		// (MCP server set is loaded at boot, not mutated mid-session).
+		if (ctx?.ui?.setStatus) {
+			const sessionId = ctx.sessionManager?.getSessionId?.() ?? "";
+			const shortId = sessionId ? sessionId.slice(0, 8) : "no-id";
+			ctx.ui.setStatus("agent-id", `agent:${shortId}`);
+
+			const mcpServers = new Set<string>();
+			for (const tool of pi.getAllTools()) {
+				const name = (tool as { name: string }).name;
+				if (!name.includes("__")) continue;
+				const parts = name.split("__");
+				const server = parts[0] === "mcp" ? parts[1] : parts[0];
+				if (server) mcpServers.add(server);
+			}
+			ctx.ui.setStatus(
+				"mcp",
+				mcpServers.size > 0 ? `mcp:${mcpServers.size}` : "mcp:0",
+			);
+		}
+
 		if (enabled) enableFooter(pi, ctx);
 	});
 
@@ -234,7 +258,8 @@ export default function composedFooter(pi: ExtensionAPI) {
 					// iteration order is insertion order and is NOT stable across extensions.
 					// We project through a fixed ordering so the badge bar is predictable.
 					// Keys here must match the `name` argument each extension passes to setStatus().
-					const BADGE_ORDER = ["caveman", "om", "ponytail", "theme", "rtk", "subagents"];
+					// agent-id and mcp are registered by this extension itself in session_start.
+					const BADGE_ORDER = ["agent-id", "theme", "mcp", "rtk", "ponytail", "caveman", "om"];
 					const statuses = footerData.getExtensionStatuses() as Map<string, string>;
 					const badges: string[] = [];
 					for (const key of BADGE_ORDER) {
