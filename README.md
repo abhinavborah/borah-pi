@@ -1,6 +1,6 @@
 # Pi Config
 
-My personal Pi coding agent setup: custom agents, Matt Pocock skills, and MCP integrations.
+Personal Pi coding agent setup: multiplexer-pane subagent orchestration, long-session memory, custom agents, Matt Pocock skills, and MCP integrations.
 
 ![demo](./demo/demo.png)
 
@@ -9,35 +9,48 @@ My personal Pi coding agent setup: custom agents, Matt Pocock skills, and MCP in
 ```
 ~/.pi/
 ├── agent/
-│   ├── agents/              # Custom agents (scout, researcher, planner, etc.)
-│   ├── art/                 # UI art for splash.ts extension
-│   ├── extensions/          # UI extensions
+│   ├── agents/              # Subagent personas (scout, researcher, planner, etc.)
+│   ├── art/                 # UI art for splash
+│   ├── extensions/          # Local extensions (theme-cycler, context7, deepwiki, splash)
 │   ├── skills/              # Agent skills
 │   ├── themes/              # UI themes
+│   ├── git/                 # Git-installed packages (pi-interactive-subagents, ponytail)
+│   ├── npm/                 # npm-installed packages (pi-observational-memory, pi-rtk-optimizer, etc.)
 │   ├── AGENTS.md            # Global orchestration instructions
-│   ├── mcp.json             # MCP server configurations
 │   └── settings.json        # Configuration
-├── README.md                # docs about this project
-└── justfile                 # execution instructions via just
+├── README.md
+└── justfile
 ```
+
+## Installed Packages
+
+| Source | Package | Purpose |
+|--------|---------|---------|
+| git    | [HazAT/pi-interactive-subagents](https://github.com/HazAT/pi-interactive-subagents) | Multiplexer-pane subagent orchestrator |
+| git    | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) | Lazy/lean dev persona mode |
+| npm    | [pi-observational-memory](https://github.com/elpapi42/pi-observational-memory) v3.0.2 | Long-session observation/compaction memory |
+| npm    | [pi-rtk-optimizer](https://github.com/MasuRii/pi-rtk-optimizer) | Auto-rewrites bash to compact rtk equivalents |
+| npm    | pi-mcp-adapter | MCP server integration |
+| npm    | pi-web-access | Code examples, docs, API references |
+| local  | theme-cycler, context7, deepwiki, splash | UI + research utilities |
+
+Run `pi list` for the live view.
 
 ---
 
 ## Custom Agents
 
-Built on [pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code) with Matt Pocock skills and MCP integrations. Each agent is defined in `~/.pi/agent/agents/` and invoked via `/run`, `/chain`, or `/parallel`.
-
-### Available Agents
+Subagent personas in `~/.pi/agent/agents/`. Invoked via `subagent({ agent: "scout", ... })`.
 
 | Agent               | Purpose                                                                    | Context |
 | ------------------- | -------------------------------------------------------------------------- | ------- |
-| **scout**           | Fast codebase recon - maps entry points, types, data flow, risks           | fresh   |
-| **researcher**      | Web/docs research - searches, fetches, synthesizes evidence                | fresh   |
+| **scout**           | Fast codebase recon — maps entry points, types, data flow, risks           | fresh   |
+| **researcher**      | Web/docs research — searches, fetches, synthesizes evidence                | fresh   |
 | **planner**         | Turns requirements into implementation plans                               | fork    |
-| **builder**         | Implementation with /tdd and /diagnose (defaultReads: context.md, plan.md) | fork    |
-| **reviewer**        | Code review - correctness, tests, simplicity (fresh context)               | fresh   |
-| **oracle**          | Advisory - challenges assumptions, no edits                                | fork    |
-| **context-builder** | Strong handoff pass - gathers context + meta-prompt                        | fresh   |
+| **builder**         | Implementation with `/tdd` and `/diagnose` (auto-reads `context.md`, `plan.md`) | fork    |
+| **reviewer**        | Code review — correctness, tests, simplicity (fresh context)               | fresh   |
+| **oracle**          | Advisory — challenges assumptions, no edits                                | fork    |
+| **context-builder** | Strong handoff pass — gathers context + meta-prompt                        | fresh   |
 | **delegate**        | Lightweight generic delegate with parent-like behavior                     | fork    |
 | **documenter**      | Documentation and README generation                                        | fork    |
 | **red-team**        | Security and adversarial testing                                           | fork    |
@@ -231,172 +244,95 @@ subagent({
 
 ---
 
-## Native Extensions
+## pi-interactive-subagents
 
-Custom extensions installed locally in `~/.pi/agent/extensions/`.
+[HazAT](https://github.com/HazAT/pi-interactive-subagents) — multiplexer-pane subagent orchestrator. Replaces the deleted `subagent-widget`, `agent-team`, and `agent-chain` extensions.
 
-### Migrated from [disler/pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code)
+**Backends:** `tmux`, `cmux`, `zellij`, `wezterm` (force via `PI_SUBAGENT_MUX`)
 
-| Extension           | Shortcuts           | Purpose                                          |
-| ------------------- | ------------------- | ------------------------------------------------ |
-| **theme-cycler.ts** | `Ctrl+.` / `Ctrl+,` | Cycle themes with picker or command              |
-| **themeMap.ts**     | —                   | Per-extension theme assignments (utility module) |
+**Bundled agents:** planner (Opus), scout (Haiku), worker (Sonnet), reviewer (Opus), visual-tester (Sonnet)
 
-### Multi-Agent Orchestration Extensions
+**Reads custom personas** from `~/.pi/agent/agents/<name>.md`
 
-#### subagent-widget.ts
-
-Background subagent spawning with live TUI widgets.
-
-**Commands:**
-
-- `/sub <task>` — Spawn a background subagent
-- `/subcont <id> <prompt>` — Continue an existing subagent's conversation
-- `/subrm <id>` — Remove a subagent widget
-- `/subclear` — Clear all subagent widgets
-
-**Features:**
-
-- Live streaming progress widget
-- Session persistence for multi-turn conversations
-- `/subcont` reuses the same session for context continuity
-
-#### agent-team.ts
-
-Dispatcher-only orchestrator with grid dashboard.
-
-**Commands:**
-
-- `/agents-team` — Switch active team
-- `/agents-list` — List loaded agents and status
-- `/agents-grid <1-6>` — Set grid column count (default: auto-size up to 6)
-- `/agents-show` — Show the agent grid widget
-- `/agents-hide` — Hide the agent grid widget
-
-**Tool:** `dispatch_agent` — Primary agent delegates work to specialists.
-
-**Teams:** Defined in `~/.pi/agent/agents/teams.yaml` (plan-build, full, info, frontend, pi-pi)
-
-#### agent-chain.ts
-
-Sequential pipeline orchestrator — each step's output feeds into the next.
-
-**Commands:**
-
-- `/chain` — Switch active chain
-- `/chain-list` — List all available chains
-- `/chain-show` — Show the agent chain footer
-- `/chain-hide` — Hide the agent chain footer
-
-**Tool:** `run_chain` — Execute a multi-step workflow.
-
-**Variables:** `$INPUT` (previous step output), `$ORIGINAL` (original prompt)
-
-**Built-in chains:** plan-build-review, plan-build, scout-flow, plan-review-plan, full-review
-
-#### coms.ts
-
-Peer-to-peer messaging between Pi agents on the same machine.
-
-**Commands:**
-
-- `/coms` — Main coms command
-
-**Tools:**
-
-- `coms_list` — List peer agents
-- `coms_send` — Send message to peer
-- `coms_get` — Get messages from peer
-- `coms_await` — Wait for message from peer
-
-**Transport:** Unix sockets (macOS/Linux) / named pipes (Windows)
-
-**Registry:** `~/.pi/coms/projects/<project>/agents/`
-
-**Usage:** Start two pi instances with `--name receiver --project test`, then send messages between them.
-
----
-
-### justfile
-
-Task runner for common pi launch configurations. Install: `brew install just`
-
+**Install:**
 ```bash
-# List all recipes
-just
+pi install git:github.com/HazAT/pi-interactive-subagents
+```
 
-# Default pi with extensions
-just pi
+**Config:** `config.json` in the extension dir (copy from `config.json.example`).
 
-# Agent team with theme cycling
-just ext-agent-team
+**Env:**
+- `PI_SUBAGENT_MUX=cmux|tmux|zellij|wezterm` — force a backend
+- `PI_SUBAGENT_SHELL_READY_DELAY_MS` — default 500
 
-# Agent chain with theme cycling
-just ext-agent-chain
+## pi-observational-memory
 
-# Pi Pi meta-agent
-just ext-pi-pi
+[elpapi42](https://github.com/elpapi42/pi-observational-memory) v3.0.2 — long-session observation/compaction memory. Auto-observes the session at token thresholds and compacts memory to survive handoffs and long sessions.
 
-# Open in new terminal: just open agent-team theme-cycler
+**Install:**
+```bash
+pi install npm:pi-observational-memory
+```
+
+**Config:** under `observational-memory.*` in `~/.pi/agent/settings.json` (or `<project>/.pi/settings.json`). Key settings: `observeAfterTokens` (10000), `reflectAfterTokens` (20000), `compactAfterTokens` (81000), `observationsPoolMaxTokens` (20000), `agentMaxTurns` (16), `model.{provider,id,thinking}`.
+
+**V2 → V3:** NOT backward compatible. Rename your settings: `observationThresholdTokens` → `observeAfterTokens`, `compactionThresholdTokens` → `compactAfterTokens`, `reflectionThresholdTokens` → `reflectAfterTokens`, `compactionModel` → `model`, etc. After upgrading, start a new clean pi session.
+
+**Env:** `PI_OBSERVATIONAL_MEMORY_PASSIVE=1` (disable automatic observation)
+
+**Debug log:** `~/.pi/agent/observational-memory/debug/<session-id>.ndjson`
+
+## ponytail
+
+[DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) — lazy/lean dev persona mode. Forces the shortest working solution, prevents over-engineering, and gates explanations behind explicit requests.
+
+Active by default. Intensity levels: `lite`, `full` (default), `ultra`. Disable with "stop ponytail" / "normal mode".
+
+```
+pi install git:github.com/DietrichGebert/ponytail
 ```
 
 ---
 
-#### theme-cycler.ts
+## Native Extensions
 
-Theme cycling with keyboard shortcuts and command.
+### theme-cycler.ts
+
+Theme cycling with keyboard shortcuts and command. Migrated from [disler/pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code).
 
 **Shortcuts:**
-
-- `Ctrl+.` — Cycle to next theme
-- `Ctrl+,` — Cycle to previous theme
+- `Ctrl+.` — cycle to next theme
+- `Ctrl+,` — cycle to previous theme
 
 **Commands:**
-
-- `/theme` — Open theme picker
-- `/theme <name>` — Switch directly (e.g., `/theme synthwave`)
+- `/theme` — open theme picker
+- `/theme <name>` — switch directly (e.g. `/theme synthwave`)
 
 **Features:**
-
 - Status line shows current theme name with 🎨 icon
 - Color swatch widget briefly appears after switching
 - Default theme: `gruvbox-new`
 
-#### themeMap.ts
+### themeMap.ts
 
-Utility module providing theme mapping. Each extension can have a default theme assigned via `THEME_MAP`. When theme-cycler is primary, it defaults to `gruvbox-new`.
+Per-extension theme assignments. Utility module imported by `theme-cycler.ts`.
 
-#### splash.ts
+### splash.ts
 
-ASCII art splash screen on session start.
+ASCII art splash on session start.
 
 **Features:**
-
 - Two-column layout: logo/tagline (left), stats/shortcuts (right)
 - Theme-aware colors with configurable border styles
 - Displays: CWD, extensions loaded, skills loaded, tools available
-- Quick tips for commands and navigation
 - Auto-dismisses on first user message
 - Configurable via `~/.pi/agent/art/splash.json`
-
-**No registered commands** — event-driven (session_start, user_message, session_shutdown).
 
 ### Context7 Extension
 
 Up-to-date library documentation. Interactive command: `/context7`
 
-**Tools:**
-
-- `context7_resolve_library_id` - Resolve library name to Context7 ID
-- `context7_query_docs` - Fetch docs for a library
-- `context7_search_docs` - Search library docs
-
-**Usage:**
-
-```typescript
-subagent({ agent: "researcher", task: "How to use Prisma transactions?" });
-// researcher uses context7_* tools automatically
-```
+**Tools:** `context7_resolve_library_id`, `context7_query_docs`, `context7_search_docs`
 
 **Used by:** scout, planner, builder, reviewer, oracle, delegate, plan-reviewer
 
@@ -404,11 +340,7 @@ subagent({ agent: "researcher", task: "How to use Prisma transactions?" });
 
 GitHub repository documentation and AI Q&A. Interactive command: `/deepwiki`
 
-**Tools:**
-
-- `deepwiki_read_wiki_structure` - List documentation topics
-- `deepwiki_read_wiki_contents` - View documentation
-- `deepwiki_ask_question` - Ask questions about a repo
+**Tools:** `deepwiki_read_wiki_structure`, `deepwiki_read_wiki_contents`, `deepwiki_ask_question`
 
 **Used by:** planner, plan-reviewer
 
@@ -438,15 +370,7 @@ git clone https://github.com/mendableai/firecrawl.git ~/Developer/firecrawl
 cd ~/Developer/firecrawl && docker compose up -d
 ```
 
-**Tools:**
-| Tool | Description |
-|------|-------------|
-| `firecrawl_scrape` | Single URL → markdown + metadata |
-| `firecrawl_map` | Discover all URLs on a site |
-| `firecrawl_search` | Web search |
-| `firecrawl_crawl` | Crawl entire website |
-| `firecrawl_extract` | Structured data extraction |
-| `firecrawl_agent` | Autonomous research agent |
+**Tools:** `firecrawl_scrape`, `firecrawl_map`, `firecrawl_search`, `firecrawl_crawl`, `firecrawl_extract`, `firecrawl_agent`
 
 **Used by:** planner, oracle, documenter, red-team
 
@@ -516,40 +440,23 @@ Then run `/setup-matt-pocock-skills` to configure per-repo settings.
 
 ---
 
-## Extensions
-
-### Tool Counter Footer
-
-Displays tool and MCP call counts in the UI footer. Toggle via `/tool-counter`.
-
-**Features:**
-
-- Total tool invocations
-- MCP calls breakdown by server
-- Built-in tool usage (bash, read, write, edit, grep, find, ls)
-- Token usage + model info
-
----
-
 ## Packages
 
 ### NPM Packages (via `pi install`)
 
-| Package                | Purpose                                       |
-| ---------------------- | --------------------------------------------- |
+| Package | Purpose |
+| --- | --- |
+| `npm:pi-observational-memory` | Long-session observation/compaction memory |
 | `npm:pi-rtk-optimizer` | Auto-rewrites bash to compact rtk equivalents |
-| `npm:pi-intercom`      | Direct messaging between pi sessions          |
-| `npm:pi-web-access`    | Code examples, docs, API references           |
-| `npm:pi-mcp-adapter`   | MCP server integration                        |
+| `npm:pi-web-access` | Code examples, docs, API references |
+| `npm:pi-mcp-adapter` | MCP server integration |
 
-### pi-intercom
+### Git Packages (via `pi install`)
 
-Direct messaging between pi sessions on the same machine. Press **Alt+M** or run `/intercom`.
-
-```typescript
-intercom({ action: "send", to: "session-name", message: "..." }); // Fire-and-forget
-intercom({ action: "ask", to: "session-name", message: "..." }); // Blocking wait
-```
+| Package | Purpose |
+| --- | --- |
+| `git:github.com/HazAT/pi-interactive-subagents` | Subagent orchestrator |
+| `git:github.com/DietrichGebert/ponytail` | Lazy dev persona mode |
 
 ---
 
@@ -625,15 +532,16 @@ If pi needs access to an additional directory, nono will prompt you during the s
 
 ## Prerequisites
 
-| Dependency             | Purpose                    | Install                                                                             |
-| ---------------------- | -------------------------- | ----------------------------------------------------------------------------------- |
-| **nono**               | Kernel-level sandbox       | `brew install nono`                                                                 |
-| **pi-coding-agent**    | The Pi coding agent        | [earendil-works/pi-coding-agent](https://github.com/earendil-works/pi-coding-agent) |
-| **pi-mcp-adapter**     | MCP server integration     | [pi.dev/packages/pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter)            |
-| **rtk**                | Compact shell commands     | `brew install rubygem-tk`                                                           |
-| **Firecrawl**          | Web scraping (optional)    | `docker compose up -d` in firecrawl repo                                            |
-| **Matt Pocock Skills** | Engineering best practices | `npx skills@latest add mattpocock/skills`                                           |
-| **Archon**             | Workflow engine (optional) | `brew install coleam00/archon/archon`                                               |
+| Dependency | Purpose | Install |
+| --- | --- | --- |
+| **nono** | Kernel-level sandbox | `brew install nono` |
+| **pi-coding-agent** | The Pi coding agent | [earendil-works/pi-coding-agent](https://github.com/earendil-works/pi-coding-agent) |
+| **pi-mcp-adapter** | MCP server integration | `pi install npm:pi-mcp-adapter` |
+| **rtk** | Compact shell commands | `brew install rubygem-tk` |
+| **tmux** (or cmux/zellij/wezterm) | Multiplexer for pi-interactive-subagents | `brew install tmux` |
+| **Matt Pocock Skills** | Engineering best practices | `npx skills@latest add mattpocock/skills` |
+| **Firecrawl** (optional) | Web scraping | `docker compose up -d` in firecrawl repo |
+| **Archon** (optional) | Workflow engine | `brew install coleam00/archon/archon` |
 
 ### Quick Install
 
@@ -641,47 +549,40 @@ If pi needs access to an additional directory, nono will prompt you during the s
 # 1. Install nono (recommended)
 brew install nono
 
-# 2. Create the pi sandbox profile
-# The profile defines what pi can access. Get it from your existing setup or create it:
-# ~/.config/nono/profiles/pi.json
-
-# 3. Add the sandbox alias to ~/.zshrc
+# 2. Add sandbox alias to ~/.zshrc
 echo "alias pi='nono run --profile pi --allow-cwd -- pi'" >> ~/.zshrc
 source ~/.zshrc
 
-# 4. Install pi (follow pi-coding-agent docs)
+# 3. Install pi (follow pi-coding-agent docs)
 
-# 3. Install pi-mcp-adapter
+# 4. Install core packages
 pi install npm:pi-mcp-adapter
+pi install npm:pi-rtk-optimizer
+pi install npm:pi-web-access
+pi install npm:pi-observational-memory
+pi install git:github.com/HazAT/pi-interactive-subagents
+pi install git:github.com/DietrichGebert/ponytail
 
-# 4. Install rtk
+# 5. Install rtk
 brew install rubygem-tk
 
-# 5. Install RTK optimizer
-pi install npm:pi-rtk-optimizer
-
-# 6. Install subagents and intercom
-pi install npm:pi-intercom
+# 6. Install tmux (for pi-interactive-subagents)
+brew install tmux
 
 # 7. Install Matt Pocock Skills
 npx skills@latest add mattpocock/skills
 
-# 8. Install web-access for code lookups
-pi install npm:pi-web-access
-
-# 9. (Optional) Start Firecrawl
+# 8. (Optional) Start Firecrawl
 git clone https://github.com/mendableai/firecrawl.git ~/Developer/firecrawl
 cd ~/Developer/firecrawl && docker compose up -d
 
-# 10. (Optional) Install Archon
+# 9. (Optional) Install Archon
 brew install coleam00/archon/archon
 ```
 
 ---
 
 ## Environment Variables
-
-Add API keys to `~/.zshrc`:
 
 ```bash
 export CONTEXT7_API_KEY="ctx7sk-..."
@@ -694,21 +595,20 @@ Reload: `source ~/.zshrc`
 
 ## Quick Reference
 
-| Situation                   | Action                                        |
-| --------------------------- | --------------------------------------------- |
-| Understand unfamiliar code  | `/run scout "Map X"`                          |
-| Need external evidence      | `/run researcher "Research X"`                |
-| Hard decision before acting | `/run oracle "Advise on X"`                   |
-| Complex work ahead          | `/grill-with-docs` first, then `/run planner` |
-| Implement feature           | `/run builder` (after plan approved)          |
-| After implementation        | Parallel `/run reviewer` (fresh context)      |
-| Bug investigation           | `/diagnose` or `/run oracle`                  |
-| New feature idea            | `/grill-me` → `/to-prd`                       |
-| Breaking down a plan        | `/to-issues`                                  |
-| Periodic codebase health    | `/improve-codebase-architecture`              |
-| Design exploration          | `/prototype`                                  |
-| Compact mode                | `/caveman`                                    |
-| Handoff to another session  | `/intercom` (Alt+M)                           |
+| Situation | Action |
+| --- | --- |
+| Understand unfamiliar code | `/run scout "Map X"` |
+| Need external evidence | `/run researcher "Research X"` |
+| Hard decision before acting | `/run oracle "Advise on X"` |
+| Complex work ahead | `/grill-with-docs` first, then `/run planner` |
+| Implement feature | `/run builder` (after plan approved) |
+| After implementation | Parallel `/run reviewer` (fresh context) |
+| Bug investigation | `/diagnose` or `/run oracle` |
+| New feature idea | `/grill-me` → `/to-prd` |
+| Breaking down a plan | `/to-issues` |
+| Periodic codebase health | `/improve-codebase-architecture` |
+| Design exploration | `/prototype` |
+| Compact mode | `/caveman` |
 
 ---
 
@@ -717,7 +617,9 @@ Reload: `source ~/.zshrc`
 - **[nono](https://nono.sh)** by always-further
 - [just](https://github.com/casey/just) by @casey
 - **[pi-coding-agent](https://github.com/earendil-works/pi-coding-agent)** by @earendil-works
-- **[pi-intercom](https://github.com/nicobailon/pi-intercom)** by nicopreme
+- **[pi-interactive-subagents](https://github.com/HazAT/pi-interactive-subagents)** by HazAT
+- **[pi-observational-memory](https://github.com/elpapi42/pi-observational-memory)** by elpapi42
+- **[ponytail](https://github.com/DietrichGebert/ponytail)** by DietrichGebert
 - **[pi-web-access](https://github.com/nicobailon/pi-web-access)** by nicopreme
 - **[Matt Pocock Skills](https://github.com/mattpocock/skills)** by @mattpocock
 - **[pi-mcp-adapter](https://pi.dev/packages/pi-mcp-adapter)** by nicopreme
@@ -727,4 +629,4 @@ Reload: `source ~/.zshrc`
 - **[Context7](https://context7.com)** by Context7
 - **[DeepWiki](https://deepwiki.com)** by DeepWiki
 - **[Playwright](https://playwright.dev)** by Microsoft
-- **[disler/pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code)** — Extension source for theme-cycler, pi-pi, subagent-widget, agent-team, agent-chain, coms
+- [disler/pi-vs-claude-code](https://github.com/disler/pi-vs-claude-code) — Source for theme-cycler, themeMap
