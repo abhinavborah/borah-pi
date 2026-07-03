@@ -230,10 +230,17 @@ export default function composedFooter(pi: ExtensionAPI) {
 					const toolStats = countTools(_ctx.sessionManager.getBranch(), mcpToolNames);
 
 					// ---- Plugin badges (from setStatus) ----
-					// footerData.getExtensionStatuses() returns ReadonlyMap<string, string>
-					const badges: string[] = Array.from(
-						(footerData.getExtensionStatuses() as Map<string, string>).values(),
-					).filter((t) => Boolean(t));
+					// footerData.getExtensionStatuses() returns ReadonlyMap<string, string>;
+					// iteration order is insertion order and is NOT stable across extensions.
+					// We project through a fixed ordering so the badge bar is predictable.
+					// Keys here must match the `name` argument each extension passes to setStatus().
+					const BADGE_ORDER = ["caveman", "om", "ponytail", "theme", "rtk", "subagents"];
+					const statuses = footerData.getExtensionStatuses() as Map<string, string>;
+					const badges: string[] = [];
+					for (const key of BADGE_ORDER) {
+						const text = statuses.get(key);
+						if (text) badges.push(text);
+					}
 
 					// ---- Segment: cwd ----
 					const cwdStr = abbreviateHome(_ctx.cwd);
