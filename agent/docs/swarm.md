@@ -65,12 +65,6 @@ subagent({
 
 ---
 
-## Chain Inference
-
-Use the **Core Orchestration Pattern** loop above. Skip steps only when the user asks for speed.
-
----
-
 ## Worktrees (parallel agent isolation — required, not optional)
 
 **Rule:** any time you spawn parallel subagents that edit files, each agent MUST run in its own git worktree. No worktree = race conditions on shared files. This is a hard requirement, not optional.
