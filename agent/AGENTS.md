@@ -19,6 +19,7 @@ clarify → scout/research → planner → builder → parallel fresh reviewers 
 - One writer thread only: `builder` implements, `reviewer` never silently edits
 - Fork for advisory threads (`oracle`); fresh context for adversarial reviewers
 - Escalate unapproved decisions upward; don't decide alone
+- Parallelize by default: when a task splits into 2+ independent subtasks (non-conflicting files, non-blocking), spawn a subagent for each. Never serialize work that can be parallelized.
 
 ---
 
