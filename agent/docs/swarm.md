@@ -71,18 +71,82 @@ Use the **Core Orchestration Pattern** loop above. Skip steps only when the user
 
 ---
 
-## Worktrees (parallel agent isolation)
+## Worktrees (parallel agent isolation — required, not optional)
 
-For multi-agent parallel work, isolate each agent in its own worktree using [worktrunk](https://worktrunk.dev/):
+**Rule:** any time you spawn parallel subagents that edit files, each agent MUST run in its own git worktree. No worktree = race conditions on shared files. This is a hard requirement, not optional.
+
+[worktrunk](https://worktrunk.dev/) is the CLI for this. It wraps `git worktree` with branch-addressed commands, hooks, and a multi-worktree dashboard. Install once, then `wt` is the only command you need.
+
+### Setup (once)
 
 ```bash
-brew install worktrunk && wt config shell install
-pi install npm:pi-worktrunk   # status markers: 🤖 busy, 💬 idle
+brew install worktrunk
+wt config shell install   # required: lets wt switch actually change directories
 ```
 
-The `pi-worktrunk` extension updates `wt list` markers as pi lifecycle events fire (`session_start` → 💬, `agent_start` → 🤖, `agent_end` → 💬, `session_shutdown` → clear). Fails quietly when `wt` is unavailable.
+### Single-agent isolation
 
-Pattern: `wt switch -x pi -c <branch> -- '<task>'` creates a worktree and launches pi inside it.
+```bash
+wt switch --create feat/my-task    # create branch + worktree, cd into it
+# ... do your work in the worktree ...
+wt step commit                     # commit staged changes
+wt merge main                      # squash + rebase + ff merge + auto-remove
+# or: gh pr create && wt remove    # PR workflow
+```
+
+### Parallel agents (one worktree per subagent)
+
+Each subagent gets its own branch and worktree. The `-x` flag launches a command inside the worktree:
+
+```bash
+wt switch -x pi -c feat/auth-flow    -- 'add user authentication' &
+wt switch -x pi -c fix/pagination    -- 'fix the pagination bug' &
+wt switch -x pi -c test/api-coverage -- 'add API tests' &
+wait
+wt list
+```
+
+`wt switch` creates the branch from the default branch, makes the worktree, and `cd`s into it. Path follows the template `~/repo.<branch>` by default.
+
+### Tracking the fleet: `wt list`
+
+```bash
+wt list                  # compact: branch, status, divergence, last commit
+wt list --full           # + CI status and LLM summaries
+wt list --format=json    # machine-readable for scripts / orchestrators
+```
+
+Key symbols in the Status column:
+
+| Symbol | Meaning |
+|---|---|
+| `@` | current worktree (your shell is here) |
+| `^` | primary worktree (default branch) |
+| `+` | other worktree |
+| `+` / `!` / `?` | staged / modified / untracked |
+| `↑` / `↓` / `↕` | ahead / behind / diverged from default branch |
+| `_` | empty (same as default branch, clean — safe to remove) |
+| `⊂` | integrated (already in default branch via different history) |
+
+### Cleanup
+
+A worktree is safe to remove when `wt list` shows it as `_` (empty) or `⊂` (integrated):
+
+```bash
+wt remove feat/auth-flow
+```
+
+If you used `wt merge main` already, the worktree and branch are removed in one shot.
+
+### Configuration (optional)
+
+Default worktree path is `~/repo.<branch>`. Override via `~/.config/worktrunk/config.toml`:
+
+```toml
+worktree-path = "{{ repo_path }}/.worktrees/{{ branch | sanitize }}"
+```
+
+Per-project config in `.config/wt.toml` (hooks, dev servers, etc).
 
 ---
 
