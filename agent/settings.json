@@ -14,7 +14,9 @@
     "extensions/splash.ts",
     "git:github.com/DietrichGebert/ponytail",
     "git:github.com/HazAT/pi-interactive-subagents",
-    "npm:pi-observational-memory"
+    "npm:pi-observational-memory",
+    "git:github.com/jonjonrankin/pi-caveman@v1.0.7",
+    "extensions/composed-footer.ts"
   ],
   "defaultThinkingLevel": "high"
 }
