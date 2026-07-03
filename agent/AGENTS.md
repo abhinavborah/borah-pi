@@ -87,46 +87,7 @@ subagent({
 
 ## Chain Inference
 
-For non-trivial multi-step work, infer the appropriate chain from the user's prompt.
-Chains are defined in `~/.pi/agent/agents/agent-chain.yaml`.
-
-### Always Ask
-
-**When the user prompt is ambiguous or contains multiple signals, ALWAYS ask which chain to use.**
-Show the chain name AND description so the user can make an informed choice.
-
-Example:
-
-> I see your request involves planning and implementation. Which workflow would you like?
->
-> - `plan-build` — Plan then build (fast two-step)
-> - `full-review` — Scout → plan → build → review (thorough)
-> - `scout-flow` — Deep exploration and verification
-
-### Chain Keywords
-
-Match these keywords to chains:
-
-- "scout", "investigate", "explore", "find", "map" → `scout-flow`
-- "plan", "design", "approach" → `plan-build` or `plan-build-review`
-- "review", "check", "audit" → `full-review` or `plan-review-plan`
-- Multi-step / complex requests → `full-review`
-
-### Research Keywords → Prefix Researcher
-
-When these keywords appear, suggest adding `researcher` as the first step:
-
-- "research", "specs", "docs", "official", "internet", "search the internet"
-- "compare", "benchmark", "best practice", "alternative", "library"
-- "npm", "github", "api documentation", "RFC", "spec"
-
-If the user says "yes" to research prefix, prepend researcher to the chosen chain.
-
-### Fallback
-
-If no keyword match, always ask the user to choose from the available chains.
-
----
+Use the **Core Orchestration Pattern** loop above. Skip steps only when the user asks for speed.
 
 ## Skills (Matt Pocock)
 
