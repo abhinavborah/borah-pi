@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "mode": "rewrite",
+  "guardWhenRtkMissing": true,
+  "showRewriteNotifications": false,
+  "outputCompaction": {
+    "enabled": true,
+    "stripAnsi": true,
+    "readCompaction": {
+      "enabled": true
+    },
+    "truncate": {
+      "enabled": true,
+      "maxChars": 12000
+    },
+    "trackSavings": true
+  }
+}
