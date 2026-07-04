@@ -297,14 +297,19 @@ export default function composedFooter(pi: ExtensionAPI) {
 				render(width: number): string[] {
 					// ---- Token stats (cumulative for current branch) ----
 					let input = 0, output = 0, cost = 0;
-					let lastInput = 0;
+					// ctx tracks the latest turn's full context (input + cached + written),
+					// not just usage.input. Anthropic + opencode-go models with prompt
+					// caching report the non-cached delta in `input` and the bulk of
+					// the conversation in `cacheRead`, so using only `input` makes
+					// the ctx meter read 99% always (the cached portion dominates).
+					let ctx = 0;
 					for (const e of _ctx.sessionManager.getBranch()) {
 						if (e.type === "message" && e.message.role === "assistant") {
 							const m = e.message as AssistantMessage;
 							input += m.usage.input;
 							output += m.usage.output;
 							cost += m.usage.cost.total;
-							lastInput = m.usage.input; // latest turn's input
+							ctx = m.usage.input + m.usage.cacheRead + m.usage.cacheWrite;
 						}
 					}
 
@@ -345,10 +350,12 @@ export default function composedFooter(pi: ExtensionAPI) {
 					const modelId = _ctx.model?.id;
 					const modelSeg = modelId ? ansi(C.model, modelId) : "";
 
-					// ---- Segment: ctx% (latest turn's input vs context window) ----
+					// ---- Segment: ctx% (latest turn's full context vs context window) ----
+					// Full context = input + cacheRead + cacheWrite. Using just input
+					// silently mis-measures cached models (the meter pins at 99% always).
 					const contextWindow = _ctx.model?.contextWindow ?? 200000;
 					const remaining = contextWindow > 0
-						? Math.max(0, 100 - Math.min(100, (lastInput / contextWindow) * 100))
+						? Math.max(0, 100 - Math.min(100, (ctx / contextWindow) * 100))
 						: 100;
 					const ctxSeg = ansi(colorForCtxPct(remaining), `ctx:${Math.round(remaining)}%`);
 
