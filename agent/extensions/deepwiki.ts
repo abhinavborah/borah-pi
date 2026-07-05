@@ -1,34 +1,11 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { makeMcpRequest } from "./mcp-http.ts";
 
 // DeepWiki MCP Server endpoint
 const DEEPWIKI_MCP_URL = "https://mcp.deepwiki.com/mcp";
 
-// MCP JSON-RPC request helper
-async function mcpRequest(method: string, params: Record<string, unknown>): Promise<unknown> {
-  const response = await fetch(DEEPWIKI_MCP_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: Date.now(),
-      method,
-      params,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`DeepWiki MCP error: ${response.status} ${response.statusText}`);
-  }
-
-  const result = await response.json() as { result?: unknown; error?: { message: string } };
-
-  if (result.error) {
-    throw new Error(`DeepWiki MCP error: ${result.error.message}`);
-  }
-
-  return result.result;
-}
+const mcpRequest = makeMcpRequest(DEEPWIKI_MCP_URL, "DeepWiki");
 
 // Extension entry point
 export default function (pi: ExtensionAPI) {
@@ -49,11 +26,11 @@ export default function (pi: ExtensionAPI) {
       }),
     }),
 
-    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+    async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
       const result = await mcpRequest("tools/call", {
         name: "read_wiki_structure",
         arguments: { repo: params.repo },
-      }) as { content?: Array<{ type: string; text?: string }> };
+      }, signal) as { content?: Array<{ type: string; text?: string }> };
 
       const text = result?.content?.[0]?.text ?? JSON.stringify(result);
       return {
@@ -78,11 +55,11 @@ export default function (pi: ExtensionAPI) {
       }),
     }),
 
-    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+    async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
       const result = await mcpRequest("tools/call", {
         name: "read_wiki_contents",
         arguments: { repo: params.repo, topic: params.topic },
-      }) as { content?: Array<{ type: string; text?: string }> };
+      }, signal) as { content?: Array<{ type: string; text?: string }> };
 
       const text = result?.content?.[0]?.text ?? JSON.stringify(result);
       return {
@@ -107,11 +84,11 @@ export default function (pi: ExtensionAPI) {
       }),
     }),
 
-    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+    async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
       const result = await mcpRequest("tools/call", {
         name: "ask_question",
         arguments: { repo: params.repo, question: params.question },
-      }) as { content?: Array<{ type: string; text?: string }> };
+      }, signal) as { content?: Array<{ type: string; text?: string }> };
 
       const text = result?.content?.[0]?.text ?? JSON.stringify(result);
       return {

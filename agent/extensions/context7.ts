@@ -1,34 +1,11 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { makeMcpRequest } from "./mcp-http.ts";
 
 // Context7 MCP Server endpoint
 const CONTEXT7_MCP_URL = "https://mcp.context7.com/mcp";
 
-// MCP JSON-RPC request helper
-async function mcpRequest(method: string, params: Record<string, unknown>): Promise<unknown> {
-  const response = await fetch(CONTEXT7_MCP_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: Date.now(),
-      method,
-      params,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Context7 MCP error: ${response.status} ${response.statusText}`);
-  }
-
-  const result = await response.json() as { result?: unknown; error?: { message: string } };
-
-  if (result.error) {
-    throw new Error(`Context7 MCP error: ${result.error.message}`);
-  }
-
-  return result.result;
-}
+const mcpRequest = makeMcpRequest(CONTEXT7_MCP_URL, "Context7");
 
 // Extension entry point
 export default function (pi: ExtensionAPI) {
@@ -52,11 +29,11 @@ export default function (pi: ExtensionAPI) {
       }),
     }),
 
-    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+    async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
       const result = await mcpRequest("tools/call", {
         name: "resolve-library-id",
         arguments: { query: params.query, libraryName: params.libraryName },
-      }) as { content?: Array<{ type: string; text?: string }> };
+      }, signal) as { content?: Array<{ type: string; text?: string }> };
 
       const text = result?.content?.[0]?.text ?? JSON.stringify(result);
       return {
@@ -81,11 +58,11 @@ export default function (pi: ExtensionAPI) {
       }),
     }),
 
-    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+    async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
       const result = await mcpRequest("tools/call", {
         name: "query-docs",
         arguments: { libraryId: params.libraryId, query: params.query },
-      }) as { content?: Array<{ type: string; text?: string }> };
+      }, signal) as { content?: Array<{ type: string; text?: string }> };
 
       const text = result?.content?.[0]?.text ?? JSON.stringify(result);
       return {
