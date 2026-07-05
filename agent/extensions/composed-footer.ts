@@ -32,7 +32,7 @@
  */
 
 import type { AssistantMessage, ToolCall } from "@earendil-works/pi-ai";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
@@ -158,9 +158,8 @@ function countTools(entries: unknown[], mcpToolNames: Set<string>): ToolStats {
 			const isMcp = mcpToolNames.has(tc.name) || tc.name.includes("__");
 			if (!isMcp) continue;
 			stats.mcpCalls++;
-			const parts = tc.name.split("__");
-			const server = parts[0] === "mcp" ? parts[1] : parts[0];
-			stats.mcpServers.add(server);
+			const server = mcpServerOf(tc.name);
+			if (server) stats.mcpServers.add(server);
 		}
 	}
 
@@ -213,6 +212,12 @@ async function detectWorktree(cwd: string): Promise<WorktreeInfo> {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Extract the MCP server name from a tool name like "mcp__server__tool" or "server__tool". */
+function mcpServerOf(toolName: string): string | undefined {
+	const parts = toolName.split("__");
+	return parts[0] === "mcp" ? parts[1] : parts[0];
+}
+
 function fmt(n: number): string {
 	return n < 1000 ? `${n}` : `${(n / 1000).toFixed(1)}k`;
 }
@@ -257,10 +262,8 @@ export default function composedFooter(pi: ExtensionAPI) {
 
 			const mcpServers = new Set<string>();
 			for (const tool of pi.getAllTools()) {
-				const name = tool.name;
-				if (!name.includes("__")) continue;
-				const parts = name.split("__");
-				const server = parts[0] === "mcp" ? parts[1] : parts[0];
+				if (!tool.name.includes("__")) continue;
+				const server = mcpServerOf(tool.name);
 				if (server) mcpServers.add(server);
 			}
 			ctx.ui.setStatus(
@@ -410,7 +413,7 @@ export default function composedFooter(pi: ExtensionAPI) {
 
 	pi.registerCommand("composed-footer", {
 		description: "Toggle composed footer (p10k-style statusline + plugin badges + tool counts)",
-		handler: async (_args, ctx: Ctx) => {
+		handler: async (_args, ctx: ExtensionContext) => {
 			enabled = !enabled;
 			if (!enabled) {
 				ctx.ui.setFooter(undefined);

@@ -12,23 +12,12 @@ import { join } from "path";
 // NOTE: "theme-cycler" uses the theme from settings.json instead (see readSettingsTheme)
 
 export const THEME_MAP: Record<string, string> = {
-	"agent-chain":        "midnight-ocean",   // deep sequential pipeline
-	"agent-team":         "dracula",          // rich orchestration palette
 	"coms":               "ocean-breeze",     // peer-to-peer messaging, cross-boundary
-	"coms-net":           "ocean-breeze",     // peer-to-peer messaging, cross-boundary
-	"cross-agent":        "ocean-breeze",     // cross-boundary, connecting
-	"damage-control":     "gruvbox",          // grounded, earthy safety
-	"minimal":            "synthwave",        // synthwave by default now!
-	"pi-pi":              "gruvbox",        // warm creative meta-agent
-	"pure-focus":         "everforest",       // calm, distraction-free
-	"purpose-gate":       "tokyo-night",      // intentional, sharp focus
-	"session-replay":     "catppuccin-mocha", // soft, reflective history
-	"subagent-widget":    "cyberpunk",        // multi-agent futuristic
-	"system-select":      "catppuccin-mocha", // soft selection UI
-	"theme-cycler":     "gruvbox",      // warm earthy theme
-	"tilldone":           "everforest",       // task-focused calm
-	"tool-counter":       "synthwave",        // techy metrics
-	"tool-counter-widget":"synthwave",        // same family
+	"composed-footer":    "synthwave",        // techy metrics
+	"context7":           "synthwave",        // docs lookup
+	"deepwiki":           "synthwave",        // docs lookup
+	"splash":             "synthwave",        // startup art
+	"theme-cycler":       "gruvbox",          // warm earthy theme
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────

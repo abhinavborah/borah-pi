@@ -22,7 +22,6 @@ import { truncateToWidth } from "@earendil-works/pi-tui";
 import { applyExtensionDefaults } from "./themeMap.ts";
 
 export default function (pi: ExtensionAPI) {
-	let currentCtx: ExtensionContext | undefined;
 	let swatchTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function updateStatus(ctx: ExtensionContext) {
@@ -109,7 +108,6 @@ export default function (pi: ExtensionAPI) {
 	pi.registerShortcut("ctrl+.", {
 		description: "Cycle theme forward",
 		handler: async (ctx) => {
-			currentCtx = ctx;
 			cycleTheme(ctx, 1);
 		},
 	});
@@ -117,7 +115,6 @@ export default function (pi: ExtensionAPI) {
 	pi.registerShortcut("ctrl+,", {
 		description: "Cycle theme backward",
 		handler: async (ctx) => {
-			currentCtx = ctx;
 			cycleTheme(ctx, -1);
 		},
 	});
@@ -127,7 +124,6 @@ export default function (pi: ExtensionAPI) {
 	pi.registerCommand("theme", {
 		description: "Select a theme: /theme or /theme <name>",
 		handler: async (args, ctx) => {
-			currentCtx = ctx;
 			if (!ctx.hasUI) return;
 
 			const themes = getThemeList(ctx);
@@ -167,7 +163,6 @@ export default function (pi: ExtensionAPI) {
 	// --- Session init ---
 
 	pi.on("session_start", async (_event, ctx) => {
-		currentCtx = ctx;
 		applyExtensionDefaults(import.meta.url, ctx);
 		updateStatus(ctx);
 	});

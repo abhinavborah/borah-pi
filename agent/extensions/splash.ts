@@ -102,7 +102,6 @@ interface SplashStats {
   extensions: number;
   skills: number;
   tools: number;
-  borderStyle: BorderStyle;
   borderChars: BorderChars;
   showDefaultStats: boolean;
 }
@@ -377,7 +376,6 @@ export default function (pi: ExtensionAPI) {
       cwd: ctx.cwd,
       agentsPath: agentsPathToShow,
       themeName: themeName,
-      borderStyle: borderStyle,
       borderChars: borderChars,
       showDefaultStats: showDefaultStats,
       extensions: commands.filter((c) => c.source === "extension").length,
