@@ -1,7 +1,7 @@
 ---
 name: red-team
 description: Security and adversarial testing
-tools: read,bash,grep,find,ls,contact_supervisor,playwright_navigate,playwright_screenshot,playwright_click,playwright_fill,firecrawl_scrape,firecrawl_search
+tools: read,bash,grep,find,ls,caller_ping,playwright_navigate,playwright_screenshot,playwright_click,playwright_fill,firecrawl_scrape,firecrawl_search
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
@@ -65,4 +65,4 @@ Blockers: N
 ```
 
 ## Supervisor coordination
-Use `contact_supervisor` with `reason: "need_decision"` for ambiguous findings or severity ratings.
+Use `caller_ping` with a `message` describing the decision needed for ambiguous findings or severity ratings.

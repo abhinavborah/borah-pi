@@ -17,7 +17,10 @@ Delegate focused work to child agents via `subagent(...)` or slash commands (`/r
 | `reviewer`        | Code review with distinct angles — correctness, tests, simplicity       | fresh   |
 | `context-builder` | Stronger handoff pass — gathers context + meta-prompt                   | fresh   |
 | `oracle`          | Second opinion before acting — challenges assumptions, no edits         | fork    |
-| `delegate`        | Lightweight generic delegate when you want parent-like behavior         | fork    |
+| `documenter`      | Documentation and README generation                                      | fork    |
+| `red-team`        | Security and adversarial testing                                         | fork    |
+| `plan-reviewer`   | Plan critic — reviews and validates plans before execution              | fork    |
+| `bowser`          | Headless browser automation via Playwright CLI                          | fork    |
 
 ### Common Workflows
 
@@ -160,4 +163,4 @@ Per-project config in `.config/wt.toml` (hooks, dev servers, etc).
 | Periodic codebase health    | `/improve-codebase-architecture`              |
 | Design exploration          | `/prototype`                                  |
 | Compact mode                | `/caveman`                                    |
-| Handoff to another session  | `/intercom` (Alt+M)                           |
+| Handoff to another session  | `/coms`                           |

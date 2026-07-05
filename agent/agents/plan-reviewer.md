@@ -1,7 +1,7 @@
 ---
 name: plan-reviewer
 description: Plan critic — reviews, challenges, and validates implementation plans
-tools: read,grep,find,ls,write,contact_supervisor,context7_query_docs,context7_search_docs,deepwiki_search,deepwiki_ask
+tools: read,grep,find,ls,write,caller_ping,context7_query_docs,deepwiki_read_wiki_structure,deepwiki_ask_question
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
@@ -65,4 +65,4 @@ Must-fix before proceeding: Y/N
 ```
 
 ## Supervisor coordination
-Use `contact_supervisor` with `reason: "need_decision"` when plan has fundamental issues requiring user input.
+Use `caller_ping` with a `message` describing the decision needed when plan has fundamental issues requiring user input.

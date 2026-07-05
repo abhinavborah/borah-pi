@@ -1,7 +1,7 @@
 ---
 name: oracle
 description: Second opinion before acting - challenges assumptions, no edits
-tools: read, grep, find, ls, bash, write, intercom, firecrawl_scrape, firecrawl_search, context7_query_docs, context7_search_docs
+tools: read, grep, find, ls, bash, write, coms_send, coms_await, caller_ping, firecrawl_scrape, firecrawl_search, context7_query_docs
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
@@ -58,5 +58,5 @@ Review direction, challenge assumptions, catch drift, and recommend the safest n
 [Concrete next step with rationale]
 
 ## Supervisor coordination
-Use `contact_supervisor` with `reason: "need_decision"` when you need clarification to proceed.
+Use `caller_ping` with a `message` describing the decision needed when you need clarification to proceed.
 ```

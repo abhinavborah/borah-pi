@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Code review and quality checks
-tools: read,bash,grep,find,ls,write,contact_supervisor,playwright_navigate,playwright_screenshot,playwright_click,playwright_fill,context7_query_docs,context7_search_docs
+tools: read,bash,grep,find,ls,write,caller_ping,playwright_navigate,playwright_screenshot,playwright_click,playwright_fill,context7_query_docs
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
@@ -56,4 +56,4 @@ Feedback to ignore/defer: N
 ```
 
 ## Supervisor coordination
-Use `contact_supervisor` with `reason: "need_decision"` only for scope/product/architecture issues that need user approval. For style/simplicity issues, flag and move on.
+Use `caller_ping` with a `message` describing the decision needed only for scope/product/architecture issues that need user approval. For style/simplicity issues, flag and move on.

@@ -1,7 +1,7 @@
 ---
 name: documenter
 description: Documentation and README generation
-tools: read,write,edit,grep,find,ls,contact_supervisor,firecrawl_scrape,firecrawl_search,firecrawl_crawl
+tools: read,write,edit,grep,find,ls,caller_ping,firecrawl_scrape,firecrawl_search,firecrawl_crawl
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
@@ -34,7 +34,7 @@ Create and update documentation for code, APIs, and features.
   - Well-structured (headings, code examples, tables where appropriate)
 - Update READMEs, add inline comments for complex logic, generate API docs.
 - Reference actual file paths and code examples.
-- If something is unclear, use `contact_supervisor` with `reason: "need_decision"`.
+- If something is unclear, use `caller_ping` with a `message` describing the decision needed.
 
 ## Output Shape
 
@@ -45,4 +45,4 @@ Coverage: Z.
 ```
 
 ## Supervisor coordination
-Use `contact_supervisor` with `reason: "need_decision"` for ambiguity in scope or tone.
+Use `caller_ping` with a `message` describing the decision needed for ambiguity in scope or tone.

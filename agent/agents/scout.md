@@ -1,7 +1,7 @@
 ---
 name: scout
 description: Fast recon and codebase exploration
-tools: read,grep,find,ls,bash,write,intercom,context7_query_docs
+tools: read,grep,find,ls,bash,write,coms_send,coms_await,caller_ping,context7_query_docs
 thinking: medium
 systemPromptMode: replace
 inheritProjectContext: true
@@ -60,4 +60,4 @@ Explain how the pieces connect.
 Name the first file another agent should open and why.
 
 ## Supervisor coordination
-If runtime bridge instructions identify a safe supervisor target and you are blocked or need a decision, use `contact_supervisor` with `reason: "need_decision"` and wait for reply. Use `reason: "progress_update"` only for meaningful discoveries. Do not send routine handoffs.
+If runtime bridge instructions identify a safe supervisor target and you are blocked or need a decision, use `caller_ping` with a `message` describing the decision needed and wait for reply. Ping only for meaningful discoveries. Do not send routine handoffs.

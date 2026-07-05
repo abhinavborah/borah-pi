@@ -1,7 +1,7 @@
 ---
 name: planner
 description: Architecture and implementation planning
-tools: read,grep,find,ls,write,context7_resolve_library_id,context7_query_docs,context7_search_docs,deepwiki_read_wiki_structure,deepwiki_ask_question,intercom,firecrawl_scrape,firecrawl_search,firecrawl_crawl
+tools: read,grep,find,ls,write,context7_resolve_library_id,context7_query_docs,deepwiki_read_wiki_structure,deepwiki_ask_question,coms_send,coms_await,caller_ping,firecrawl_scrape,firecrawl_search,firecrawl_crawl
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
@@ -55,4 +55,4 @@ Which tasks depend on others.
 Anything likely to go wrong.
 
 ## Supervisor coordination
-Use `contact_supervisor` with `reason: "need_decision"` when blocked on ambiguity.
+Use `caller_ping` with a `message` describing the decision needed when blocked on ambiguity.

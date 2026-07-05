@@ -23,7 +23,7 @@ clarify → scout/research → planner → builder → parallel fresh reviewers 
 - One writer thread only: `builder` implements, `reviewer` never silently edits
 - Fork for advisory threads (`oracle`); fresh context for adversarial reviewers
 - Escalate unapproved decisions upward; don't decide alone
-- Parallelize by default: when a task splits into 2+ independent subtasks (non-conflicting files, non-blocking) AND team mode is on (`/team` status, `team:on` in statusline), spawn a subagent for each. Never serialize work that can be parallelized. When `team:off`, run all work in the current session. The user has explicitly disabled subagent spawning and the system-prompt enforces it.
+- Parallelize by default: when a task splits into 2+ independent subtasks (non-conflicting files, non-blocking) AND team mode is on (`/team` status, `team:on` in statusline), spawn a subagent for each. Never serialize work that can be parallelized. When `team:off`, run all work in the current session — that toggle means the user has explicitly disabled subagent spawning, and the system-prompt enforces it.
 
 ---
 
@@ -37,7 +37,7 @@ If the user asks you to run a productivity or engineering skill (e.g. `/grill-me
 
 ## Inter-session coordination
 
-If the user asks you to coordinate with another pi session via `intercom()`, you MUST first read `~/.pi/agent/docs/swarm.md`.
+If the user asks you to coordinate with another pi session via the `coms_*` tools, you MUST first read `~/.pi/agent/docs/swarm.md`.
 
 ## Web research and MCP tools
 
@@ -57,5 +57,5 @@ If the user asks you to do web research, fetch a URL, or use an MCP tool, you MU
 4. **Don't fork for adversarial review** — use fresh context for reviewers
 5. **Don't delegate orchestration** — parent owns workflow, children execute tasks
 6. **Don't use `ask` casually** — it's blocking; use `send` for notifications
-7. **Don't guess on unapproved decisions** — escalate via `contact_supervisor` or `intercom`
+7. **Don't guess on unapproved decisions** — escalate via `caller_ping` or `coms_send`
 8. **Don't spawn subagents when `team:off`** - respect the user's explicit toggle. The badge in the statusline and the system-prompt rule both enforce this; ignore neither.

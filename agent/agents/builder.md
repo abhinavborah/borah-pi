@@ -1,7 +1,7 @@
 ---
 name: builder
 description: Implementation and code generation - both specialist (with context/plan) and lightweight generic execution
-tools: read,write,edit,bash,grep,find,ls,contact_supervisor,intercom,context7_query_docs,context7_search_docs
+tools: read,write,edit,bash,grep,find,ls,caller_ping,coms_send,coms_await,context7_query_docs
 thinking: high
 systemPromptMode: replace
 inheritProjectContext: true
@@ -53,7 +53,7 @@ Follow the diagnosis loop: reproduce -> minimise -> hypothesise -> instrument ->
 - Follow existing patterns in the codebase.
 - Verify the result with appropriate checks (run tests, lint, type-check).
 - Use `bash` for inspection, validation, and relevant tests.
-- If implementation reveals a gap, pause and escalate with `contact_supervisor` and `reason: "need_decision"`.
+- If implementation reveals a gap, pause and escalate with `caller_ping` with a `message` describing the decision needed.
 
 ## Output Shape
 
@@ -67,5 +67,5 @@ Recommended next step: N.
 
 ## Supervisor coordination
 
-Use `contact_supervisor` with `reason: "need_decision"` when a new decision is needed and wait for reply before continuing.
+Use `caller_ping` with a `message` describing the decision needed when a new decision is needed and wait for reply before continuing.
 
