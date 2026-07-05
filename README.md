@@ -10,11 +10,11 @@ Personal pi coding-agent setup. Multiplexer-pane subagents, long-session memory,
 ~/.pi/
 ├── agent/
 │   ├── AGENTS.md            # Orchestration instructions (persona + pattern)
-│   ├── settings.json        # 12-extension packages list, model, theme, OM config
+│   ├── settings.json        # packages list, model, theme, OM config
 │   ├── agents/              # 11 local subagent personas
 │   ├── art/                 # ASCII art + splash layout
 │   ├── docs/                # Topic docs for AGENTS.md cross-refs (not public)
-│   ├── extensions/          # theme-cycler, splash, context7, deepwiki, composed-footer
+│   ├── extensions/          # theme-cycler, splash, context7, deepwiki, composed-footer, coms
 │   ├── git/                 # Git-installed packages (runtime, gitignored)
 │   ├── npm/                 # npm-installed packages (runtime, gitignored)
 │   ├── skills/              # Local skills + symlinks to Matt Pocock skills
@@ -39,6 +39,7 @@ Personal pi coding-agent setup. Multiplexer-pane subagents, long-session memory,
 | local | `extensions/context7.ts` | tracked | Up-to-date library docs |
 | local | `extensions/deepwiki.ts` | tracked | GitHub repo docs + Q&A |
 | local | `extensions/composed-footer.ts` | tracked | Claude-style statusline |
+| local | `extensions/coms.ts` | tracked | Peer-to-peer messaging between local pi agents |
 
 ## Personas
 
@@ -56,7 +57,7 @@ Local personas in `agent/agents/`. Invoked via `subagent({ agent: "<name>", ... 
 | documenter | Documentation and README generation | fork | inherits |
 | red-team | Security and adversarial testing | fork | inherits |
 | plan-reviewer | Plan critic, reviews and validates plans | fork | inherits |
-| bowser | Headless browser automation via Playwright CLI | fork | opencode-go:kimi:k2.6 |
+| bowser | Headless browser automation via Playwright CLI | fork | inherits |
 
 Persona resolution: local `agent/agents/<name>.md` wins over bundled `<name>.md` on name collision. Bundle-only names fall through. Tools, thinking, body from the winner.
 
@@ -208,6 +209,9 @@ Default: `on` (file missing or malformed). When `off`, a system-prompt rule is i
 | `context7.ts` | Library docs | `context7_resolve_library_id`, `context7_query_docs`, `/context7` |
 | `deepwiki.ts` | GitHub repo docs + Q&A | `deepwiki_read_wiki_structure`, `deepwiki_read_wiki_contents`, `deepwiki_ask_question`, `/deepwiki` |
 | `composed-footer.ts` | Statusline | `/composed-footer`, `/team [on|off]` |
+| `coms.ts` | Peer-to-peer agent messaging | `coms_list`, `coms_send`, `coms_get`, `coms_await`, `/coms` |
+| `themeMap.ts` | Helper (imported, not loaded standalone) | theme + title defaults for stacked extensions |
+| `mcp-http.ts` | Helper (imported, not loaded standalone) | shared MCP JSON-RPC client for context7/deepwiki |
 
 ## MCP Servers
 
@@ -239,7 +243,7 @@ Tools: `firecrawl_scrape`, `firecrawl_map`, `firecrawl_search`, `firecrawl_crawl
 npx skills@latest add mattpocock/skills
 ```
 
-- Primary: `~/.agents/skills/` (40 skills)
+- Primary: `~/.agents/skills/` (48 skills)
 - Symlinks: `agent/skills/`
 - Local: `agent/skills/local/` (bowser, graphify, supacode-cli)
 
