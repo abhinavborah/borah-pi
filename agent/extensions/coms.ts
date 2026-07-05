@@ -19,6 +19,7 @@ import { Text, Container, truncateToWidth, visibleWidth, wrapTextWithAnsi } from
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { applyExtensionDefaults } from "./themeMap.ts";
+import { correlateInboundAnswers } from "./coms-correlate.ts";
 import * as net from "node:net";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -32,7 +33,10 @@ const MAX_HOPS = Number(process.env.PI_COMS_MAX_HOPS) || 5;
 const TIMEOUT_MS = Number(process.env.PI_COMS_TIMEOUT_MS) || 1_800_000;
 const PING_INTERVAL_MS = Number(process.env.PI_COMS_PING_INTERVAL_MS) || 10_000;
 const KEEPALIVE_INTERVAL_MS = 30_000;
-const LINE_CAP_BYTES = 64 * 1024;
+// 1 MiB default — agents routinely share diffs/code well past 64 KiB.
+const LINE_CAP_BYTES = Number(process.env.PI_COMS_LINE_CAP_BYTES) || 1024 * 1024;
+// How long a settled pendingReplies entry stays around for coms_get re-polls.
+const PENDING_RETENTION_MS = 600_000;
 
 const FALLBACK_PALETTE = [
 	"#72F1B8", "#36F9F6", "#FF7EDB", "#FEDE5D",
@@ -359,15 +363,6 @@ function pruneDeadEntriesAllProjects(): RegistryEntry[] {
 	return out;
 }
 
-function keepaliveTouch(file: string): void {
-	try {
-		const now = new Date();
-		fs.utimesSync(file, now, now);
-	} catch {
-		// best-effort
-	}
-}
-
 // ━━ Transport ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function probeStaleSocket(endpoint: string): Promise<"in_use" | "stale"> {
@@ -660,6 +655,14 @@ export default function (pi: ExtensionAPI) {
 		}
 	}
 
+	// Keep a settled entry around briefly so coms_get can still re-poll it,
+	// then drop it — otherwise pendingReplies grows one entry per message
+	// for the whole session lifetime.
+	function scheduleReplyCleanup(msg_id: string): void {
+		const t = setTimeout(() => pendingReplies.delete(msg_id), PENDING_RETENTION_MS);
+		try { (t as any).unref?.(); } catch { /* ignore */ }
+	}
+
 	function handleResponse(socket: net.Socket, env: ResponseEnvelope): void {
 		const pending = pendingReplies.get(env.msg_id);
 		if (pending) {
@@ -673,7 +676,7 @@ export default function (pi: ExtensionAPI) {
 			} catch {
 				// ignore
 			}
-			// Note: do NOT delete the entry here — coms_get poll may still want it.
+			scheduleReplyCleanup(env.msg_id);
 		} else {
 			try {
 				pi.appendEntry("coms-log", { event: "orphan_response", msg_id: env.msg_id });
@@ -808,8 +811,12 @@ export default function (pi: ExtensionAPI) {
 		try {
 			fs.mkdirSync(path.join(COMS_DIR, "projects", project, "agents"), { recursive: true });
 			if (process.platform !== "win32") {
-				fs.mkdirSync(path.join(COMS_DIR, "sockets"), { recursive: true });
+				const socketsDir = path.join(COMS_DIR, "sockets");
+				fs.mkdirSync(socketsDir, { recursive: true });
+				// Owner-only: any local user with socket access can inject prompts
+				// that trigger LLM turns, so lock down the whole tree.
 				try { fs.chmodSync(COMS_DIR, 0o700); } catch { /* best-effort */ }
+				try { fs.chmodSync(socketsDir, 0o700); } catch { /* best-effort */ }
 			}
 		} catch (err) {
 			ctx.ui?.notify?.(`📡 coms: failed to create dirs — ${err instanceof Error ? err.message : String(err)}`, "error");
@@ -819,6 +826,9 @@ export default function (pi: ExtensionAPI) {
 		// 3. Bind the endpoint.
 		try {
 			server = await bindEndpoint(endpoint, connHandler);
+			if (process.platform !== "win32") {
+				try { fs.chmodSync(endpoint, 0o600); } catch { /* best-effort */ }
+			}
 		} catch (err) {
 			ctx.ui?.notify?.(`📡 coms: bind failed — ${err instanceof Error ? err.message : String(err)}`, "error");
 			return;
@@ -1326,6 +1336,7 @@ export default function (pi: ExtensionAPI) {
 				if (entry.result) return;
 				entry.result = { error: "timeout" };
 				try { entry.resolve(entry.result); } catch { /* ignore */ }
+				scheduleReplyCleanup(msg_id);
 			}, TIMEOUT_MS);
 			// Don't keep the event loop alive solely for this timer.
 			try { (entry.timer as any).unref?.(); } catch { /* ignore */ }
@@ -1477,74 +1488,71 @@ export default function (pi: ExtensionAPI) {
 	// ━━ agent_end: capture turn output and dispatch response back ━━━━━━━━
 
 	pi.on("agent_end", async (_event, ctx) => {
-		const inbound = [...inboundQueue.values()].reverse().find((i) => !i.fulfilled);
-		if (!inbound || !identity) return;
+		if (!identity || inboundQueue.size === 0) return;
 
-		// Walk the session branch for the most recent assistant message text.
-		let lastAssistantText = "";
-		for (const entry of ctx.sessionManager.getBranch()) {
-			if (entry.type === "message" && entry.message.role === "assistant") {
-				const m = entry.message as any;
-				if (typeof m.content === "string") {
-					lastAssistantText = m.content;
-				} else if (Array.isArray(m.content)) {
-					lastAssistantText = m.content
-						.filter((b: any) => b && b.type === "text")
-						.map((b: any) => b.text)
-						.join("\n");
+		// Correlate each unfulfilled inbound to the assistant text that followed
+		// its injected coms-inbound custom_message in the session branch. This
+		// replaces the old "latest unfulfilled" heuristic, which shipped replies
+		// to the wrong sender when prompts interleaved.
+		const matches = correlateInboundAnswers(
+			ctx.sessionManager.getBranch(),
+			new Set([...inboundQueue.values()].filter((i) => !i.fulfilled).map((i) => i.msg_id)),
+		);
+
+		for (const { msg_id, text } of matches) {
+			const inbound = inboundQueue.get(msg_id);
+			if (!inbound) continue;
+
+			let payload: any = text;
+			let error: string | null = null;
+			if (inbound.response_schema && typeof inbound.response_schema === "object") {
+				try {
+					payload = JSON.parse(text);
+				} catch {
+					error = "response not valid JSON";
+					payload = null;
 				}
 			}
-		}
 
-		let payload: any = lastAssistantText;
-		let error: string | null = null;
-		if (inbound.response_schema && typeof inbound.response_schema === "object") {
+			const respEnv: ResponseEnvelope = {
+				type: "response",
+				msg_id: inbound.msg_id,
+				sender_session: identity.session_id,
+				sender_endpoint: identity.endpoint,
+				hops: 0,
+				timestamp: nowIso(),
+				response: payload,
+				error,
+			};
+
 			try {
-				payload = JSON.parse(lastAssistantText);
-			} catch {
-				error = "response not valid JSON";
-				payload = null;
+				await sendEnvelope(inbound.sender_endpoint, respEnv);
+				try {
+					pi.appendEntry("coms-log", {
+						event: "outbound_response",
+						msg_id: inbound.msg_id,
+						error,
+					});
+				} catch {
+					// best-effort
+				}
+			} catch (e: any) {
+				try {
+					pi.appendEntry("coms-log", {
+						event: "outbound_response_failed",
+						msg_id: inbound.msg_id,
+						reason: e?.message ?? String(e),
+					});
+				} catch {
+					// best-effort
+				}
 			}
-		}
 
-		const respEnv: ResponseEnvelope = {
-			type: "response",
-			msg_id: inbound.msg_id,
-			sender_session: identity.session_id,
-			sender_endpoint: identity.endpoint,
-			hops: 0,
-			timestamp: nowIso(),
-			response: payload,
-			error,
-		};
-
-		try {
-			await sendEnvelope(inbound.sender_endpoint, respEnv);
-			try {
-				pi.appendEntry("coms-log", {
-					event: "outbound_response",
-					msg_id: inbound.msg_id,
-					error,
-				});
-			} catch {
-				// best-effort
+			inbound.fulfilled = true;
+			inboundQueue.delete(inbound.msg_id);
+			if (currentInbound && currentInbound.msg_id === inbound.msg_id) {
+				currentInbound = null;
 			}
-		} catch (e: any) {
-			try {
-				pi.appendEntry("coms-log", {
-					event: "outbound_response_failed",
-					msg_id: inbound.msg_id,
-					reason: e?.message ?? String(e),
-				});
-			} catch {
-				// best-effort
-			}
-		}
-
-		inbound.fulfilled = true;
-		inboundQueue.delete(inbound.msg_id);
-		if (currentInbound && currentInbound.msg_id === inbound.msg_id) {
-			currentInbound = null;
 		}
 	});
 
